@@ -95,7 +95,11 @@ export async function TableroLider({ perfil }: { perfil: Perfil }) {
             Ver todos →
           </Link>
         </div>
-        <LeadsTabla leads={invitados.slice(0, 20)} mostrarResponsable={false} />
+        <LeadsTabla
+          leads={invitados.slice(0, 20)}
+          mostrarResponsable={false}
+          vacio={{ titulo: "Todavía nadie se ha registrado con tu enlace", detalle: "Compártelo por WhatsApp y aquí verás a cada invitado con su estatus." }}
+        />
       </div>
 
       {deBolsa.length > 0 && (

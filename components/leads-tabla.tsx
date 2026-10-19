@@ -8,13 +8,19 @@ export function LeadsTabla({
   leads,
   mostrarResponsable = true,
   compacta = false,
+  vacio,
 }: {
   leads: LeadConRelaciones[];
   mostrarResponsable?: boolean;
   compacta?: boolean;
+  vacio?: { titulo: string; detalle?: string };
 }) {
   if (leads.length === 0) {
-    return <Empty title="No hay leads con estos filtros">Prueba quitando algún filtro.</Empty>;
+    return (
+      <Empty title={vacio?.titulo ?? "No hay leads con estos filtros"}>
+        {vacio ? vacio.detalle : "Prueba quitando algún filtro."}
+      </Empty>
+    );
   }
   return (
     <Table>

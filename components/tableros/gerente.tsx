@@ -38,7 +38,10 @@ export async function TableroGerente({ perfil }: { perfil: Perfil }) {
           </Link>
         </div>
         <p className="mb-3 text-sm text-muted">Los más antiguos primero. Entra a cada lead para registrar el resultado de la llamada.</p>
-        <LeadsTabla leads={porLlamar.leads} />
+        <LeadsTabla
+          leads={porLlamar.leads}
+          vacio={{ titulo: "No hay llamadas pendientes", detalle: "Cuando un invitado de tu equipo se registre aparecerá aquí." }}
+        />
       </div>
 
       <div className="mt-6">

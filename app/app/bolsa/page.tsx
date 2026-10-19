@@ -96,7 +96,10 @@ export default async function BolsaPage({ searchParams }: { searchParams: Promis
 
       <div className="mt-6">
         <h2 className="mb-3 text-lg font-semibold">Leads sin asignar</h2>
-        <LeadsTabla leads={sinAsignar.leads} />
+        <LeadsTabla
+          leads={sinAsignar.leads}
+          vacio={{ titulo: "La bolsa está vacía", detalle: "Todos los leads sin invitador ya fueron repartidos o todavía no llega ninguno." }}
+        />
       </div>
     </>
   );

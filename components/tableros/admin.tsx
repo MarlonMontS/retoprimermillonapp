@@ -71,7 +71,11 @@ export async function TableroAdmin() {
             Ver todos →
           </Link>
         </div>
-        <LeadsTabla leads={recientes.leads} compacta />
+        <LeadsTabla
+          leads={recientes.leads}
+          compacta
+          vacio={{ titulo: "Todavía no hay registros", detalle: "Aparecerán aquí en cuanto alguien llene el formulario." }}
+        />
       </div>
     </>
   );
