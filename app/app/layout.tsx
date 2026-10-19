@@ -16,6 +16,7 @@ function navPara(rol: Rol): NavItem[] {
       { href: "/app/importar", label: "Importar" },
       { href: "/app/config", label: "Configuración" },
       { href: "/app/cuenta", label: "Mi cuenta" },
+      { href: "/app/ayuda", label: "Ayuda" },
     ];
   }
   if (rol === "gerente") {
@@ -24,6 +25,7 @@ function navPara(rol: Rol): NavItem[] {
       { href: "/app/leads", label: "Leads de mi equipo" },
       { href: "/app/lideres", label: "Mi equipo" },
       { href: "/app/cuenta", label: "Mi cuenta" },
+      { href: "/app/ayuda", label: "Ayuda" },
     ];
   }
   return [
@@ -31,6 +33,7 @@ function navPara(rol: Rol): NavItem[] {
     { href: "/app/leads", label: "Mis invitados" },
     { href: "/app/ranking", label: "Ranking" },
     { href: "/app/cuenta", label: "Mi cuenta" },
+    { href: "/app/ayuda", label: "Ayuda" },
   ];
 }
 
