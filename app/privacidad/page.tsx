@@ -5,12 +5,11 @@ export const metadata: Metadata = { title: "Aviso de privacidad" };
 
 /**
  * Aviso de privacidad integral del Reto Primer Millón.
- * Los únicos datos por completar son el domicilio del responsable y el correo
- * de contacto para derechos ARCO (constantes DOMICILIO y CORREO_CONTACTO).
+ * Domicilio y correo de contacto proporcionados por el responsable el 19 de octubre de 2026.
  */
 const RESPONSABLE = "Reto Primer Millón, programa dirigido por Marco Montiel";
-const DOMICILIO = "[domicilio del responsable]";
-const CORREO_CONTACTO = "[correo de contacto para privacidad]";
+const DOMICILIO = "Blvd. Salinas 10650-7, Col. Aviación, C.P. 22014, Tijuana, Baja California, México";
+const CORREO_CONTACTO = "marcomontiels1308@gmail.com";
 const FECHA = "19 de octubre de 2026";
 
 function H({ children }: { children: React.ReactNode }) {
