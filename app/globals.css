@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Paleta tomada de la landing retoprimermillon.com */
+  --color-bg: #090b0a;
+  --color-surface: #151a17;
+  --color-surface-2: #1c231f;
+  --color-surface-3: #232b26;
+  --color-line: #29312b;
+  --color-line-2: #334036;
+  --color-fg: #f4f5f0;
+  --color-muted: #abb5ad;
+  --color-dim: #76816f;
+  --color-accent: #b9f65a;
+  --color-accent-2: #d2ff8a;
+  --color-on-accent: #090b0a;
+
+  /* Estados (siempre acompañados de texto, nunca color solo) */
+  --color-warn: #f5c451;
+  --color-danger: #ff7a7a;
+  --color-info: #7cc4ff;
+  --color-violet: #c7a7ff;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  background: var(--color-bg);
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-fg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Variante clara para incrustar el formulario en fondos claros: ?tema=claro */
+body[data-tema="claro"] {
+  --color-bg: #f4f5f0;
+  --color-surface: #ffffff;
+  --color-surface-2: #f7f8f4;
+  --color-surface-3: #eef0ea;
+  --color-line: #dfe3da;
+  --color-line-2: #c9cfc3;
+  --color-fg: #090b0a;
+  --color-muted: #4b544d;
+  --color-dim: #76816f;
+  --color-accent: #5c9a12;
+  --color-accent-2: #4a7e0e;
+  --color-on-accent: #ffffff;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  color-scheme: light;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+/* Barras de desplazamiento discretas */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-2) transparent;
+}
