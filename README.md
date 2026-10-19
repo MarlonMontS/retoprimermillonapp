@@ -1,5 +1,7 @@
 # Reto Primer Millón · Panel de leads y líderes
 
+Producción: https://reto-primer-millon.vercel.app · Supabase: proyecto `mjznafrsyyxbnsfejgnx` (org Monsieur Proyectos) · Vercel: cuenta marlon-5493
+
 App a la medida que reemplaza al CRM para organizar a los prospectos del Reto Primer Millón:
 quién invitó a quién, el filtro telefónico de los gerentes, la cuota de cada líder y la
 ruleta de la bolsa común.
