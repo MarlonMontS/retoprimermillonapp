@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button, Field, Input, Select, Textarea } from "@/components/ui";
+import { metaEvento } from "@/components/meta-pixel";
 import { CIUDAD_LABEL, COMO_SE_ENTERO_OPCIONES, EXPERIENCIA_OPCIONES, type Ciudad } from "@/lib/types";
 
 export interface Invitador {
@@ -24,7 +24,6 @@ interface Props {
 const SIN_INVITADOR = "__ninguno__";
 
 export function RegistroForm({ modo, fuenteSlug, invitadorNombre, invitadores = [], utm, embed, avisoUrl }: Props) {
-  const router = useRouter();
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [listo, setListo] = useState(false);
@@ -64,6 +63,9 @@ export function RegistroForm({ modo, fuenteSlug, invitadorNombre, invitadores = 
       origen: modo === "fijo" ? "link" : "selector",
       consentimiento: fd.get("consentimiento") === "on",
       empresa: String(fd.get("empresa") ?? ""),
+      // Para la API de conversiones de Meta: el clic del anuncio y la página donde se registró.
+      fbclid: new URLSearchParams(window.location.search).get("fbclid") ?? "",
+      pagina: (embed && document.referrer) || window.location.href,
     };
 
     setEnviando(true);
@@ -78,12 +80,15 @@ export function RegistroForm({ modo, fuenteSlug, invitadorNombre, invitadores = 
         setError(data.error ?? "No pudimos guardar tu registro. Intenta de nuevo.");
         return;
       }
-      if (embed) {
-        setListo(true);
-        formRef.current?.scrollIntoView({ block: "start" });
-      } else {
-        router.replace("/gracias");
+      // Evento Lead del pixel de Meta, con el id del lead para deduplicarlo contra el envío del servidor.
+      if (data.id && data.estatus !== "duplicado") {
+        metaEvento("Lead", { content_name: "Reto Primer Millón", content_category: payload.ciudad }, { eventID: data.id });
       }
+      setListo(true);
+      if (embed && window.parent !== window) {
+        window.parent.postMessage({ rpmRegistrado: true, eventId: data.id ?? null, ciudad: payload.ciudad }, "*");
+      }
+      formRef.current?.scrollIntoView({ block: "start" });
     } catch {
       setError("Sin conexión. Revisa tu internet e intenta de nuevo.");
     } finally {

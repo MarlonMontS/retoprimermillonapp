@@ -86,3 +86,18 @@ app/app/*                    panel privado por rol
 lib/data/*                   acceso a datos (service role) y reglas de alcance
 supabase/migrations          esquema y funciones SQL
 ```
+
+## Medición de pauta (Meta)
+
+- **Enlaces de campaña.** En *Enlaces y campañas* existe un enlace por campaña (`/r/<slug>`, tipo Publicidad);
+  los anuncios de Meta usan `meta-tijuana` y `meta-monterrey`. La landing recibe
+  `?ref=<slug>&utm_source=meta&utm_medium=paid&utm_campaign=…&utm_term=…&utm_content=…` y el bloque
+  Embed de Framer (código en *Enlaces y campañas*) pasa esos parámetros al formulario. Cada lead guarda
+  su fuente y sus UTM.
+- **Pixel.** Con `NEXT_PUBLIC_META_PIXEL_ID` las páginas públicas cargan el pixel de Meta (también dentro
+  del iframe: es un subdominio de la landing, así que las cookies son de primera parte) y el formulario
+  dispara `Lead` al registrar, con el id del lead como `eventID`. Los duplicados no disparan el evento.
+- **API de conversiones.** Con `META_CAPI_TOKEN` el servidor manda el mismo `Lead` a Meta después de
+  responder (`lib/meta.ts`): correo, WhatsApp y nombre hasheados, IP, user agent y cookies `_fbp`/`_fbc`.
+  Meta deduplica contra el evento del navegador por `event_id`. `META_TEST_EVENT_CODE` permite verlo en
+  «Probar eventos» del Administrador de eventos.

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, type ReactNode } from "react";
+import { MetaPixel } from "@/components/meta-pixel";
 
 /** Marco para las páginas públicas. En modo embed no muestra encabezado ni pie. */
 export function PublicShell({
@@ -24,11 +25,17 @@ export function PublicShell({
   }, [tema]);
 
   if (embed) {
-    return <div className="mx-auto w-full max-w-2xl p-2 sm:p-4">{children}</div>;
+    return (
+      <div className="mx-auto w-full max-w-2xl p-2 sm:p-4">
+        <MetaPixel />
+        {children}
+      </div>
+    );
   }
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col px-4 py-8 sm:py-12">
+      <MetaPixel />
       <header className="mb-8">
         <p className="text-xs font-semibold uppercase tracking-[0.25em] text-accent">Reto Primer Millón</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">{titulo ?? "Regístrate al Reto"}</h1>

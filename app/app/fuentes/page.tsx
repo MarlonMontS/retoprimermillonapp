@@ -17,14 +17,40 @@ export default async function FuentesPage() {
   const personas = fuentes.filter((f) => f.tipo === "lider" || f.tipo === "gerente");
   const campanas = fuentes.filter((f) => f.tipo !== "lider" && f.tipo !== "gerente");
   const base = appUrl();
-  const snippet = `<iframe id="rpm-registro" src="${base}/registro?embed=1" title="Registro Reto Primer Millón" loading="lazy" style="width:100%;border:0;height:980px;border-radius:12px"></iframe>
+  const snippet = `<div id="rpm-registro-wrap"></div>
 <script>
-window.addEventListener("message", function (e) {
-  if (e.data && e.data.rpmHeight) {
-    var f = document.getElementById("rpm-registro");
-    if (f) f.style.height = e.data.rpmHeight + "px";
+(function () {
+  var BASE = "${base}/registro";
+  var CLAVES = ["ref", "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "fbclid"];
+  function parametros() {
+    var s = "";
+    try { s = window.top.location.search; } catch (e) {}
+    if (!s && document.referrer) { try { s = new URL(document.referrer).search; } catch (e) {} }
+    if (!s) s = window.location.search;
+    return new URLSearchParams(s);
   }
-});
+  var p = parametros();
+  var q = new URLSearchParams();
+  var hay = false;
+  CLAVES.forEach(function (k) { var v = p.get(k); if (v) { q.set(k, v); hay = true; } });
+  try {
+    if (hay) sessionStorage.setItem("rpm_campana", q.toString());
+    else if (sessionStorage.getItem("rpm_campana")) q = new URLSearchParams(sessionStorage.getItem("rpm_campana"));
+  } catch (e) {}
+  q.set("embed", "1");
+  var f = document.createElement("iframe");
+  f.id = "rpm-registro";
+  f.src = BASE + "?" + q.toString();
+  f.title = "Registro Reto Primer Millón";
+  f.loading = "lazy";
+  f.style.cssText = "width:100%;border:0;height:980px;border-radius:12px";
+  document.getElementById("rpm-registro-wrap").appendChild(f);
+  window.addEventListener("message", function (e) {
+    if (!e.data) return;
+    if (e.data.rpmHeight) f.style.height = e.data.rpmHeight + "px";
+    if (e.data.rpmRegistrado) { try { f.scrollIntoView({ block: "start", behavior: "smooth" }); } catch (err) {} }
+  });
+})();
 </script>`;
 
   return (
@@ -48,8 +74,9 @@ window.addEventListener("message", function (e) {
             <BotonCopiar texto={snippet} etiqueta="Copiar código" />
           </div>
           <p className="mt-2 text-xs text-dim">
-            Agrega <code>&amp;tema=claro</code> a la URL del iframe si el bloque va sobre fondo claro. Los parámetros utm_source, utm_medium y utm_campaign
-            de la página se pueden pasar al iframe para rastrear campañas.
+            El código toma de la URL de la landing el enlace de campaña (<code>?ref=slug</code>) y los parámetros utm_* y fbclid, y se los pasa al
+            formulario, así cada registro queda atribuido a su campaña y anuncio. Para fondo claro agrega <code>q.set(&quot;tema&quot;, &quot;claro&quot;)</code>{" "}
+            antes de crear el iframe. El pixel de Meta y el evento Lead se disparan desde el propio formulario.
           </p>
         </details>
       </Card>
