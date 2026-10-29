@@ -3,6 +3,7 @@ import { requirePerfil } from "@/lib/auth";
 import { listarFuentes } from "@/lib/data/fuentes";
 import { PageHeader } from "@/components/ui";
 import { appUrl } from "@/lib/utils";
+import { sesionesVigentes } from "@/lib/flyers";
 import { GaleriaFlyers, type OpcionEnlace } from "./galeria";
 
 export const metadata: Metadata = { title: "Flyers" };
@@ -28,7 +29,7 @@ export default async function FlyersPage() {
         title="Flyers del Reto"
         subtitle="Elige diseño y formato. El QR y el enlace del flyer llevan tu invitación, así cada registro queda en tu equipo."
       />
-      <GaleriaFlyers opciones={opciones} base={appUrl()} />
+      <GaleriaFlyers opciones={opciones} base={appUrl()} sesiones={sesionesVigentes()} />
     </>
   );
 }

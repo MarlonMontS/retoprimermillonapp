@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button, Select } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import { FORMATOS, PLANTILLAS, textoCompartir, type Formato, type Plantilla } from "@/lib/flyers";
+import { FORMATOS, PLANTILLAS, etiquetaSesion, textoCompartir, type Formato, type Plantilla } from "@/lib/flyers";
 
 export interface OpcionEnlace {
   ref: string | null;
@@ -11,20 +11,22 @@ export interface OpcionEnlace {
   enlace: string;
 }
 
-export function GaleriaFlyers({ opciones, base }: { opciones: OpcionEnlace[]; base: string }) {
-  const [plantilla, setPlantilla] = useState<Plantilla>("invitacion");
+export function GaleriaFlyers({ opciones, base, sesiones }: { opciones: OpcionEnlace[]; base: string; sesiones: string[] }) {
+  const [plantilla, setPlantilla] = useState<Plantilla>("registro");
   const [formato, setFormato] = useState<Formato>("vertical");
   const [idx, setIdx] = useState(0);
   const [estado, setEstado] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
+  const [sesion, setSesion] = useState<string>(sesiones[0] ?? "");
 
   const op = opciones[idx];
   const qs = new URLSearchParams({ plantilla, formato });
   if (op.ref) qs.set("ref", op.ref);
+  if (plantilla === "sesion" && sesion) qs.set("sesion", sesion);
   const src = `/api/flyer?${qs.toString()}`;
   const urlPublica = `${base}/api/flyer?${qs.toString()}`;
-  const nombreArchivo = `reto-primer-millon-${plantilla}-${formato}.png`;
-  const texto = textoCompartir(op.enlace, op.ref ? op.nombre : null);
+  const nombreArchivo = `reto-tu-primer-millon-${plantilla}-${formato}.png`;
+  const texto = textoCompartir(op.enlace, { invitador: op.ref ? op.nombre : null, plantilla, sesion: plantilla === "sesion" ? sesion : null });
   const { ancho, alto } = FORMATOS[formato];
 
   async function compartir() {
@@ -55,7 +57,7 @@ export function GaleriaFlyers({ opciones, base }: { opciones: OpcionEnlace[]; ba
   }
 
   const whatsapp = `https://wa.me/?text=${encodeURIComponent(`${texto}\n\nFlyer: ${urlPublica}`)}`;
-  const correo = `mailto:?subject=${encodeURIComponent("Te invito al Reto Primer Millón")}&body=${encodeURIComponent(`${texto}\n\nVer el flyer: ${urlPublica}`)}`;
+  const correo = `mailto:?subject=${encodeURIComponent(plantilla === "sesion" ? "Sesión informativa del Reto Tu Primer Millón" : "Te invito al Reto Tu Primer Millón")}&body=${encodeURIComponent(`${texto}\n\nVer el flyer: ${urlPublica}`)}`;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
@@ -76,6 +78,23 @@ export function GaleriaFlyers({ opciones, base }: { opciones: OpcionEnlace[]; ba
             ))}
           </div>
         </div>
+
+        {plantilla === "sesion" && (
+          <div>
+            <p className="mb-2 text-sm font-medium text-muted">Sesión</p>
+            {sesiones.length ? (
+              <Select value={sesion} onChange={(e) => { setSesion(e.target.value); setCargando(true); }}>
+                {sesiones.map((x) => (
+                  <option key={x} value={x}>
+                    {etiquetaSesion(x).larga} · 7:00 p.m. TJ / 8:00 p.m. Centro
+                  </option>
+                ))}
+              </Select>
+            ) : (
+              <p className="text-xs text-dim">Ya no hay sesiones informativas próximas.</p>
+            )}
+          </div>
+        )}
 
         <div>
           <p className="mb-2 text-sm font-medium text-muted">Formato</p>
