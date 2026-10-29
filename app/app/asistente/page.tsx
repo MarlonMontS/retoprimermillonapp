@@ -3,7 +3,7 @@ import { requirePerfil } from "@/lib/auth";
 import { Alert, PageHeader } from "@/components/ui";
 import { Chat } from "./chat";
 
-export const metadata: Metadata = { title: "Asistente" };
+export const metadata: Metadata = { title: "Soporte 24/7" };
 export const dynamic = "force-dynamic";
 
 const SUGERENCIAS = {
@@ -32,7 +32,7 @@ export default async function AsistentePage() {
   const configurado = Boolean(process.env.ANTHROPIC_API_KEY);
   return (
     <>
-      <PageHeader title="Asistente" subtitle="Resuelve dudas del Reto, de la app, y te ayuda a invitar y vender. Puede equivocarse: confirma lo importante con tu gerente." />
+      <PageHeader title="Soporte 24/7" subtitle="Resuelve dudas del Reto, de la app, y te ayuda a invitar y vender. Puede equivocarse: confirma lo importante con tu gerente." />
       {configurado ? (
         <Chat sugerencias={[...SUGERENCIAS[perfil.rol]]} nombre={perfil.nombre} />
       ) : (
