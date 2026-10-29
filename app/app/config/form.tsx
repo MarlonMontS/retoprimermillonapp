@@ -23,6 +23,16 @@ export function FormConfig({ config }: { config: Config }) {
         </span>
       </label>
 
+      <label className="flex items-start gap-3 rounded-xl border border-line bg-surface-2 px-4 py-3">
+        <input type="checkbox" name="ciudad_estricta" defaultChecked={config.ciudad_estricta} className="mt-1 accent-[var(--color-accent)]" />
+        <span>
+          <span className="block text-sm font-medium">Regla por ciudad</span>
+          <span className="block text-xs text-dim">
+            Un líder o gerente solo puede tener leads de su misma ciudad, también los de la bolsa. «En línea» es compatible con cualquier ciudad. Si alguien se registra con el enlace de un líder de otra ciudad, cae en la bolsa de su propia ciudad.
+          </span>
+        </span>
+      </label>
+
       <Field label="Preguntas de la llamada de filtro" htmlFor="preguntas_filtro" hint="Una por línea. Los gerentes las ven al registrar la llamada; contestarlas es opcional.">
         <Textarea id="preguntas_filtro" name="preguntas_filtro" defaultValue={config.preguntas_filtro.join("\n")} className="min-h-40" />
       </Field>

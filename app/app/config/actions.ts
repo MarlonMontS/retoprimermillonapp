@@ -15,6 +15,7 @@ export async function accionGuardarConfig(_prev: ConfigState, fd: FormData): Pro
     const cuota = Number(fd.get("cuota_minima"));
     if (!Number.isInteger(cuota) || cuota < 0 || cuota > 100) return { error: "La cuota debe ser un número entre 0 y 100." };
     const ruleta = fd.get("ruleta_activa") === "on";
+    const ciudadEstricta = fd.get("ciudad_estricta") === "on";
     const preguntas = String(fd.get("preguntas_filtro") ?? "")
       .split("\n")
       .map((s) => s.trim())
@@ -26,6 +27,7 @@ export async function accionGuardarConfig(_prev: ConfigState, fd: FormData): Pro
     await Promise.all([
       setConfig("cuota_minima", cuota),
       setConfig("ruleta_activa", ruleta),
+      setConfig("ciudad_estricta", ciudadEstricta),
       setConfig("preguntas_filtro", preguntas),
       setConfig("aviso_privacidad_url", aviso),
     ]);

@@ -105,6 +105,7 @@ export default async function AyudaPage() {
             <li>La ruleta reparte la bolsa al azar entre los líderes desbloqueados, dando prioridad a quien menos ha recibido.</li>
             <li>Un mismo WhatsApp registrado con dos responsables: gana el primero que lo califica.</li>
             <li>Los gerentes solo califican a los invitados de su propio equipo.</li>
+            <li>Regla por ciudad: cada líder solo recibe leads de su ciudad, también de la bolsa. Los de «En línea» pueden ir con cualquiera. Si alguien de otra ciudad se registra con tu enlace, pasa a la bolsa de su ciudad.</li>
             <li>Tu contraseña se cambia en Mi cuenta. Si la olvidas, tu gerente o el administrador te generan una nueva.</li>
           </ul>
           <p className="mt-4 text-xs text-dim">

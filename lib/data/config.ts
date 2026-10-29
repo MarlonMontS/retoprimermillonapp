@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export interface Config {
   cuota_minima: number;
   ruleta_activa: boolean;
+  ciudad_estricta: boolean;
   preguntas_filtro: string[];
   aviso_privacidad_url: string;
 }
@@ -10,9 +11,21 @@ export interface Config {
 const DEFAULTS: Config = {
   cuota_minima: 5,
   ruleta_activa: true,
+  ciudad_estricta: true,
   preguntas_filtro: [],
   aviso_privacidad_url: "",
 };
+
+/** Regla por ciudad: "En línea" es compatible con cualquier ciudad; sin ciudad se considera compatible. */
+export function ciudadCompatible(
+  estricta: boolean,
+  ciudadLead: string | null | undefined,
+  ciudadResponsable: string | null | undefined
+): boolean {
+  if (!estricta || !ciudadLead || !ciudadResponsable) return true;
+  if (ciudadLead === "en_linea" || ciudadResponsable === "en_linea") return true;
+  return ciudadLead === ciudadResponsable;
+}
 
 export async function getConfig(): Promise<Config> {
   const admin = createAdminClient();

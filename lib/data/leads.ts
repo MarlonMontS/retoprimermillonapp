@@ -282,11 +282,28 @@ export async function importarLeads(
   filas: FilaImportada[],
   actorId: string,
   opts: { omitirWhatsappExistente: boolean }
-): Promise<{ insertados: number; omitidos: number; errores: string[] }> {
+): Promise<{ insertados: number; omitidos: number; aBolsaPorCiudad: number; errores: string[] }> {
   const admin = createAdminClient();
   let insertados = 0;
   let omitidos = 0;
+  let aBolsaPorCiudad = 0;
   const errores: string[] = [];
+
+  // Regla por ciudad: una fila con responsable de otra ciudad entra sin responsable (bolsa)
+  const { getConfig, ciudadCompatible } = await import("@/lib/data/config");
+  const cfg = await getConfig();
+  const liderIds = Array.from(new Set(filas.map((f) => f.lider_id).filter(Boolean))) as string[];
+  const ciudadLider = new Map<string, Ciudad | null>();
+  if (liderIds.length) {
+    const { data } = await admin.from("perfiles").select("id, ciudad").in("id", liderIds);
+    for (const p of data ?? []) ciudadLider.set(p.id as string, (p.ciudad as Ciudad | null) ?? null);
+  }
+  for (const f of filas) {
+    if (f.lider_id && !ciudadCompatible(cfg.ciudad_estricta, f.ciudad, ciudadLider.get(f.lider_id))) {
+      f.lider_id = null;
+      aBolsaPorCiudad++;
+    }
+  }
 
   const numeros = filas.map((f) => f.whatsapp);
   const externos = filas.map((f) => f.external_id).filter(Boolean) as string[];
@@ -330,5 +347,5 @@ export async function importarLeads(
     });
     insertados++;
   }
-  return { insertados, omitidos, errores };
+  return { insertados, omitidos, aBolsaPorCiudad, errores };
 }

@@ -5,7 +5,7 @@ import { requirePerfil } from "@/lib/auth";
 import { scopeDe } from "@/lib/data/scope";
 import { obtenerLead } from "@/lib/data/leads";
 import { listarLideresEstado } from "@/lib/data/equipo";
-import { getConfig } from "@/lib/data/config";
+import { ciudadCompatible, getConfig } from "@/lib/data/config";
 import { Alert, Badge, Card, CardTitle, EstatusBadge, PageHeader } from "@/components/ui";
 import { FormEditar, FormLlamada, FormNota, FormReasignar } from "./acciones";
 import { CIUDAD_LABEL, ETAPA_LABEL, EXPERIENCIA_OPCIONES, FUENTE_TIPO_LABEL } from "@/lib/types";
@@ -37,7 +37,9 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
 
   const puedeActuar = perfil.rol === "admin" || perfil.rol === "gerente";
   const opcionesReasignar = puedeActuar
-    ? (await listarLideresEstado({ gerenteId: perfil.rol === "gerente" ? perfil.id : undefined, incluirGerentes: true, soloActivos: true })).map((l) => ({
+    ? (await listarLideresEstado({ gerenteId: perfil.rol === "gerente" ? perfil.id : undefined, incluirGerentes: true, soloActivos: true }))
+        .filter((l) => l.id === lead.lider_id || ciudadCompatible(config.ciudad_estricta, lead.ciudad, l.ciudad))
+        .map((l) => ({
         id: l.id,
         nombre: l.nombre,
         detalle: l.rol === "gerente" ? "Gerente" : l.gerente_nombre ?? undefined,
