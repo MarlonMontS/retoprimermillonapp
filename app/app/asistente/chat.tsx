@@ -4,6 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { Button, Textarea } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
+/** Muestra **texto** como negritas; el resto queda como texto plano. */
+function conNegritas(texto: string) {
+  return texto.split(/(\*\*[^*\n]+\*\*)/g).map((parte, i) =>
+    parte.startsWith("**") && parte.endsWith("**") && parte.length > 4 ? <strong key={i}>{parte.slice(2, -2)}</strong> : parte
+  );
+}
+
 interface Mensaje {
   role: "user" | "assistant";
   content: string;
@@ -77,7 +84,7 @@ export function Chat({ sugerencias, nombre }: { sugerencias: string[]; nombre: s
                 m.role === "user" ? "bg-accent text-on-accent" : "bg-surface-2 text-fg"
               )}
             >
-              {m.content || <span className="inline-block animate-pulse text-muted">Escribiendo…</span>}
+              {m.content ? conNegritas(m.content) : <span className="inline-block animate-pulse text-muted">Escribiendo…</span>}
             </div>
           </div>
         ))}
