@@ -258,7 +258,7 @@ export async function GET(req: Request) {
         })}
         {etiqueta("bernardo", "left", h * (trio ? 0.5 : 0.52), w * 0.02)}
         {etiqueta("marco", "right", h * (trio ? 0.5 : 0.52), w * 0.02)}
-        {trio && etiqueta("jorge", "left", h * 0.36, w / 2 - dim("jorge").w * 0.62 - 150 * kNombre)}
+        {trio && etiqueta("jorge", "left", h * 0.3, w / 2 + dim("jorge").w * 0.43)}
       </div>
     );
   };
