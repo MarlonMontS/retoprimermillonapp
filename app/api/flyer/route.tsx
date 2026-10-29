@@ -3,12 +3,13 @@ import QRCode from "qrcode";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fuentePorSlug } from "@/lib/data/fuentes";
-import { FORMATOS, SESIONES, esFormato, esPlantilla, etiquetaSesion, sesionesVigentes, type Formato, type Plantilla } from "@/lib/flyers";
+import { FORMATOS, SEDES, SESIONES, esFormato, esPlantilla, esSede, etiquetaSesion, sesionesVigentes, type Formato, type Plantilla, type Sede } from "@/lib/flyers";
 import { appUrl, slugify } from "@/lib/utils";
 
 /**
  * Flyer público en PNG, estilo de la campaña (negro con verde neón y foto del equipo).
- * /api/flyer?plantilla=registro|sesion&formato=vertical|cuadrado|horizontal&ref=slug[&sesion=2026-11-06][&descargar=1]
+ * /api/flyer?plantilla=registro|sesion&formato=vertical|cuadrado|horizontal&sede=en_linea|tijuana|monterrey&ref=slug[&sesion=2026-11-06][&descargar=1]
+ * Monterrey lleva a Bernardo, Jorge y Marco; Tijuana y En línea solo a Bernardo y Marco.
  */
 
 const NEON = "#c6ff3a";
@@ -16,15 +17,16 @@ const FONDO = "#050806";
 const BLANCO = "#ffffff";
 const GRIS = "#c9cfc5";
 
-let fotoEquipo: Promise<string> | null = null;
-function cargarFoto() {
-  if (!fotoEquipo) {
-    fotoEquipo = readFile(join(process.cwd(), "public", "flyers", "equipo-3.jpg")).then((b) => `data:image/jpeg;base64,${b.toString("base64")}`);
-    fotoEquipo.catch(() => {
-      fotoEquipo = null;
-    });
+// Franjas de foto a su resolución original, 1102×430: equipo-3 (Bernardo, Jorge, Marco) y equipo-2 (Bernardo y Marco).
+const fotos = new Map<string, Promise<string>>();
+function cargarFoto(nombre: "equipo-3" | "equipo-2") {
+  let f = fotos.get(nombre);
+  if (!f) {
+    f = readFile(join(process.cwd(), "public", "flyers", `${nombre}.jpg`)).then((b) => `data:image/jpeg;base64,${b.toString("base64")}`);
+    f.catch(() => fotos.delete(nombre));
+    fotos.set(nombre, f);
   }
-  return fotoEquipo;
+  return f;
 }
 
 type Fuente = { name: string; data: ArrayBuffer; weight: 400 | 700; style: "normal" };
@@ -136,8 +138,26 @@ export async function GET(req: Request) {
   const C = formato === "cuadrado";
   const esSesion = plantilla === "sesion";
 
+  const sedeParam = url.searchParams.get("sede");
+  const sede: Sede = esSede(sedeParam) ? sedeParam : fuente?.perfil?.ciudad === "monterrey" || fuente?.perfil?.ciudad === "tijuana" ? fuente.perfil.ciudad : "en_linea";
+  const infoSede = SEDES[sede];
+  const trio = infoSede.equipo === "trio";
+
   const qr = await QRCode.toDataURL(enlace, { margin: 1, width: 720, errorCorrectionLevel: "M", color: { dark: "#000000", light: "#ffffff" } });
-  const foto = await cargarFoto();
+  const foto = await cargarFoto(trio ? "equipo-3" : "equipo-2");
+
+  const franjaSede = (k: number) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 18 * k, background: NEON, padding: `${12 * k}px ${30 * k}px`, borderRadius: 999 }}>
+      <svg width={40 * k} height={40 * k} viewBox="0 0 24 24">
+        <path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z" fill="none" stroke={FONDO} strokeWidth={2.4} strokeLinejoin="round" />
+        <circle cx="12" cy="10" r="2.6" fill="none" stroke={FONDO} strokeWidth={2.4} />
+      </svg>
+      <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.05 }}>
+        <span style={{ fontFamily: "Anton", fontSize: 38 * k, color: FONDO }}>{infoSede.titulo}</span>
+        <span style={{ fontFamily: "Inter", fontWeight: 700, fontSize: 22 * k, color: FONDO }}>{infoSede.detalle}</span>
+      </div>
+    </div>
+  );
 
   /* ----- Piezas ----- */
   const etiquetaSuperior = (k: number) => (
@@ -158,7 +178,7 @@ export async function GET(req: Request) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={foto} width={w} height={h} alt="" />
         <div style={{ display: "flex", position: "absolute", left: 0, bottom: 0, width: w, height: h * 0.45, background: `linear-gradient(180deg, rgba(5,8,6,0) 0%, ${FONDO} 100%)` }} />
-        <div style={{ display: "flex", position: "absolute", left: 0, top: 0, width: w, height: h * 0.18, background: `linear-gradient(0deg, rgba(5,8,6,0) 0%, ${FONDO} 100%)` }} />
+        <div style={{ display: "flex", position: "absolute", left: 0, top: 0, width: w, height: h * 0.3, background: `linear-gradient(0deg, rgba(5,8,6,0) 0%, ${FONDO} 100%)` }} />
         <div style={{ display: "flex", position: "absolute", left: 0, top: 0, width: w * 0.06, height: h, background: `linear-gradient(270deg, rgba(5,8,6,0) 0%, ${FONDO} 100%)` }} />
         <div style={{ display: "flex", position: "absolute", right: 0, top: 0, width: w * 0.06, height: h, background: `linear-gradient(90deg, rgba(5,8,6,0) 0%, ${FONDO} 100%)` }} />
       </div>
@@ -301,11 +321,12 @@ export async function GET(req: Request) {
         {etiquetaSuperior(1)}
         <div style={{ display: "flex", marginTop: 30 }}>{fotoEquipo(1080)}</div>
         <div style={{ display: "flex", marginTop: -95 }}>{titulo(1)}</div>
-        <div style={{ display: "flex", marginTop: 34 }}>{lema(1)}</div>
-        <div style={{ display: "flex", width: 1000, marginTop: 44 }}>{filaBeneficios(1, 4)}</div>
-        {esSesion && <div style={{ display: "flex", width: 1000, marginTop: 40 }}>{datosSesion(0.95)}</div>}
+        <div style={{ display: "flex", marginTop: 30 }}>{lema(1)}</div>
+        <div style={{ display: "flex", marginTop: 30 }}>{franjaSede(1)}</div>
+        <div style={{ display: "flex", width: 1000, marginTop: 36 }}>{filaBeneficios(1, 4)}</div>
+        {esSesion && <div style={{ display: "flex", width: 1000, marginTop: 32 }}>{datosSesion(0.95)}</div>}
         <div style={{ display: "flex", flex: 1 }} />
-        {bloqueQr(esSesion ? 0.92 : 1.1, esSesion ? 270 : 330)}
+        {bloqueQr(esSesion ? 0.86 : 1.02, esSesion ? 250 : 300)}
         <div style={{ display: "flex", flex: 1 }} />
       </div>
     );
@@ -314,9 +335,10 @@ export async function GET(req: Request) {
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", height: "100%", paddingTop: 0, paddingBottom: 40 }}>
         <div style={{ display: "flex" }}>{fotoEquipo(1080)}</div>
         <div style={{ display: "flex", marginTop: -95 }}>{titulo(0.62)}</div>
-        <div style={{ display: "flex", width: 1000, marginTop: 22 }}>{esSesion ? datosSesion(0.72) : filaBeneficios(0.75, 4)}</div>
+        <div style={{ display: "flex", marginTop: 16 }}>{franjaSede(0.66)}</div>
+        <div style={{ display: "flex", width: 1000, marginTop: 18 }}>{esSesion ? datosSesion(0.72) : filaBeneficios(0.75, 4)}</div>
         <div style={{ display: "flex", flex: 1 }} />
-        {bloqueQr(0.66, 205)}
+        {bloqueQr(0.6, 185)}
         <div style={{ display: "flex", flex: 1 }} />
       </div>
     );
@@ -329,7 +351,8 @@ export async function GET(req: Request) {
           <div style={{ display: "flex", marginTop: -90 }}>{titulo(0.86)}</div>
           <div style={{ display: "flex", marginTop: 20 }}>{lema(0.8)}</div>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: 44, flex: 1, paddingRight: 70, paddingLeft: 20 }}>
+        <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: 32, flex: 1, paddingRight: 70, paddingLeft: 20 }}>
+          <div style={{ display: "flex", justifyContent: "center" }}>{franjaSede(0.9)}</div>
           <div style={{ display: "flex" }}>{filaBeneficios(0.95, 2)}</div>
           {esSesion && <div style={{ display: "flex" }}>{datosSesion(0.72)}</div>}
           <div style={{ display: "flex", justifyContent: "center" }}>{bloqueQr(esSesion ? 0.78 : 0.9, esSesion ? 230 : 280)}</div>
@@ -362,7 +385,7 @@ export async function GET(req: Request) {
   const headers = new Headers(imagen.headers);
   headers.set("cache-control", "public, max-age=600, s-maxage=3600");
   if (descargar) {
-    const nombre = `reto-tu-primer-millon-${plantilla}${esSesion ? `-${sesion}` : ""}-${formato}${fuente ? `-${slugify(fuente.slug)}` : ""}.png`;
+    const nombre = `reto-tu-primer-millon-${plantilla}-${sede}${esSesion ? `-${sesion}` : ""}-${formato}${fuente ? `-${slugify(fuente.slug)}` : ""}.png`;
     headers.set("content-disposition", `attachment; filename="${nombre}"`);
   }
   return new Response(imagen.body, { status: 200, headers });

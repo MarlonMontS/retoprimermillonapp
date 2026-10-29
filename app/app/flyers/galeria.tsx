@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button, Select } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import { FORMATOS, PLANTILLAS, etiquetaSesion, textoCompartir, type Formato, type Plantilla } from "@/lib/flyers";
+import { FORMATOS, PLANTILLAS, SEDES, etiquetaSesion, textoCompartir, type Formato, type Plantilla, type Sede } from "@/lib/flyers";
 
 export interface OpcionEnlace {
   ref: string | null;
@@ -11,22 +11,23 @@ export interface OpcionEnlace {
   enlace: string;
 }
 
-export function GaleriaFlyers({ opciones, base, sesiones }: { opciones: OpcionEnlace[]; base: string; sesiones: string[] }) {
+export function GaleriaFlyers({ opciones, base, sesiones, sedeInicial }: { opciones: OpcionEnlace[]; base: string; sesiones: string[]; sedeInicial: Sede }) {
   const [plantilla, setPlantilla] = useState<Plantilla>("registro");
   const [formato, setFormato] = useState<Formato>("vertical");
   const [idx, setIdx] = useState(0);
   const [estado, setEstado] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
+  const [sede, setSede] = useState<Sede>(sedeInicial);
   const [sesion, setSesion] = useState<string>(sesiones[0] ?? "");
 
   const op = opciones[idx];
-  const qs = new URLSearchParams({ plantilla, formato });
+  const qs = new URLSearchParams({ plantilla, formato, sede });
   if (op.ref) qs.set("ref", op.ref);
   if (plantilla === "sesion" && sesion) qs.set("sesion", sesion);
   const src = `/api/flyer?${qs.toString()}`;
   const urlPublica = `${base}/api/flyer?${qs.toString()}`;
-  const nombreArchivo = `reto-tu-primer-millon-${plantilla}-${formato}.png`;
-  const texto = textoCompartir(op.enlace, { invitador: op.ref ? op.nombre : null, plantilla, sesion: plantilla === "sesion" ? sesion : null });
+  const nombreArchivo = `reto-tu-primer-millon-${plantilla}-${sede}-${formato}.png`;
+  const texto = textoCompartir(op.enlace, { invitador: op.ref ? op.nombre : null, plantilla, sesion: plantilla === "sesion" ? sesion : null, sede });
   const { ancho, alto } = FORMATOS[formato];
 
   async function compartir() {
@@ -77,6 +78,25 @@ export function GaleriaFlyers({ opciones, base, sesiones }: { opciones: OpcionEn
               </button>
             ))}
           </div>
+        </div>
+
+        <div>
+          <p className="mb-2 text-sm font-medium text-muted">Sede</p>
+          <div className="grid grid-cols-3 gap-2">
+            {(Object.keys(SEDES) as Sede[]).map((x) => (
+              <button
+                key={x}
+                type="button"
+                onClick={() => { setSede(x); setCargando(true); }}
+                className={cn("rounded-xl border px-2 py-2 text-sm font-medium", sede === x ? "border-accent bg-accent/10 text-accent" : "border-line bg-surface-2 hover:border-line-2")}
+              >
+                {SEDES[x].label}
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-dim">
+            {SEDES[sede].detalle}. {sede === "monterrey" ? "Salen Bernardo, Jorge y Marco." : "Salen Bernardo y Marco."}
+          </p>
         </div>
 
         {plantilla === "sesion" && (

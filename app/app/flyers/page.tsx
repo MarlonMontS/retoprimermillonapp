@@ -29,7 +29,12 @@ export default async function FlyersPage() {
         title="Flyers del Reto"
         subtitle="Elige diseño y formato. El QR y el enlace del flyer llevan tu invitación, así cada registro queda en tu equipo."
       />
-      <GaleriaFlyers opciones={opciones} base={appUrl()} sesiones={sesionesVigentes()} />
+      <GaleriaFlyers
+        opciones={opciones}
+        base={appUrl()}
+        sesiones={sesionesVigentes()}
+        sedeInicial={perfil.ciudad === "monterrey" || perfil.ciudad === "tijuana" ? perfil.ciudad : "en_linea"}
+      />
     </>
   );
 }
