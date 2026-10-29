@@ -17,12 +17,21 @@ const FONDO = "#050806";
 const BLANCO = "#ffffff";
 const GRIS = "#c9cfc5";
 
-// Franjas de foto a su resolución original, 1102×430: equipo-3 (Bernardo, Jorge, Marco) y equipo-2 (Bernardo y Marco).
+// Recortes sin fondo (PNG) a su resolución original. Nunca se dibujan más grandes que su tamaño real.
+const PERSONAS = {
+  bernardo: { ancho: 741, alto: 920, nombre: ["BERNARDO", "FERNÁNDEZ TANUS"] },
+  marco: { ancho: 888, alto: 900, nombre: ["MARCO", "MONTIEL"] },
+  jorge: { ancho: 290, alto: 403, nombre: ["JORGE", "RAMOS"] },
+} as const;
+type Persona = keyof typeof PERSONAS;
+// Jorge viene de una foto donde su cabeza mide ~0.54 veces la de los otros dos (en píxeles).
+const ESCALA_RELATIVA: Record<Persona, number> = { bernardo: 1, marco: 1, jorge: 1.84 };
+
 const fotos = new Map<string, Promise<string>>();
-function cargarFoto(nombre: "equipo-3" | "equipo-2") {
+function cargarFoto(nombre: Persona) {
   let f = fotos.get(nombre);
   if (!f) {
-    f = readFile(join(process.cwd(), "public", "flyers", `${nombre}.jpg`)).then((b) => `data:image/jpeg;base64,${b.toString("base64")}`);
+    f = readFile(join(process.cwd(), "public", "flyers", `${nombre}.png`)).then((b) => `data:image/png;base64,${b.toString("base64")}`);
     f.catch(() => fotos.delete(nombre));
     fotos.set(nombre, f);
   }
@@ -144,7 +153,8 @@ export async function GET(req: Request) {
   const trio = infoSede.equipo === "trio";
 
   const qr = await QRCode.toDataURL(enlace, { margin: 1, width: 720, errorCorrectionLevel: "M", color: { dark: "#000000", light: "#ffffff" } });
-  const foto = await cargarFoto(trio ? "equipo-3" : "equipo-2");
+  const personas: Persona[] = trio ? ["jorge", "bernardo", "marco"] : ["bernardo", "marco"];
+  const fotosPersonas = Object.fromEntries(await Promise.all(personas.map(async (x) => [x, await cargarFoto(x)] as const))) as Record<Persona, string>;
 
   const franjaSede = (k: number) => (
     <div style={{ display: "flex", alignItems: "center", gap: 18 * k, background: NEON, padding: `${12 * k}px ${30 * k}px`, borderRadius: 999 }}>
@@ -171,16 +181,84 @@ export async function GET(req: Request) {
     </div>
   );
 
-  const fotoEquipo = (w: number) => {
-    const h = Math.round((w * 430) / 1102);
+  /** Personas sin fondo flotando sobre el diseño, con nombres y resplandor. h = alto visible de la zona. */
+  const fotoEquipo = (w: number, h: number) => {
+    // escala base: en dúo las personas son más grandes que en trío
+    const base = trio ? (h * 0.9) / 920 : (h * 1.12) / 920;
+    const escala = (x: Persona) => Math.min(1, base * ESCALA_RELATIVA[x]);
+    const dim = (x: Persona) => ({ w: Math.round(PERSONAS[x].ancho * escala(x)), h: Math.round(PERSONAS[x].alto * escala(x)) });
+    const top = Math.round(h * 0.05);
+    const pos: Partial<Record<Persona, number>> = {};
+    if (trio) {
+      pos.bernardo = Math.round(w * 0.01);
+      pos.marco = Math.round(w - dim("marco").w - w * 0.0);
+      pos.jorge = Math.round(w / 2 - dim("jorge").w / 2);
+    } else {
+      pos.bernardo = Math.round(w * 0.03);
+      pos.marco = Math.round(w - dim("marco").w - w * 0.02);
+    }
+    const kNombre = h / 560;
+    const etiqueta = (x: Persona, lado: "left" | "right", y: number, xPos: number) => (
+      <div
+        key={`n-${x}`}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: lado === "left" ? "flex-start" : "flex-end",
+          position: "absolute",
+          top: y,
+          [lado]: xPos,
+          fontFamily: "Anton",
+          fontSize: 34 * kNombre,
+          lineHeight: 1.02,
+          textShadow: "0 2px 10px rgba(0,0,0,0.95)",
+        }}
+      >
+        <span style={{ color: BLANCO }}>{PERSONAS[x].nombre[0]}</span>
+        <span style={{ color: NEON }}>{PERSONAS[x].nombre[1]}</span>
+        <div style={{ display: "flex", width: 70 * kNombre, height: 4 * kNombre, background: NEON, marginTop: 6 * kNombre }} />
+      </div>
+    );
     return (
-      <div style={{ display: "flex", position: "relative", width: w, height: h }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={foto} width={w} height={h} alt="" />
-        <div style={{ display: "flex", position: "absolute", left: 0, bottom: 0, width: w, height: h * 0.45, background: `linear-gradient(180deg, rgba(5,8,6,0) 0%, ${FONDO} 100%)` }} />
-        <div style={{ display: "flex", position: "absolute", left: 0, top: 0, width: w, height: h * 0.3, background: `linear-gradient(0deg, rgba(5,8,6,0) 0%, ${FONDO} 100%)` }} />
-        <div style={{ display: "flex", position: "absolute", left: 0, top: 0, width: w * 0.06, height: h, background: `linear-gradient(270deg, rgba(5,8,6,0) 0%, ${FONDO} 100%)` }} />
-        <div style={{ display: "flex", position: "absolute", right: 0, top: 0, width: w * 0.06, height: h, background: `linear-gradient(90deg, rgba(5,8,6,0) 0%, ${FONDO} 100%)` }} />
+      <div style={{ display: "flex", position: "relative", width: w, height: h, overflow: "hidden" }}>
+        {personas.map((x) => {
+          const d = dim(x);
+          const centro = (pos[x] ?? 0) + d.w * (x === "marco" ? 0.5 : x === "bernardo" ? 0.36 : 0.5);
+          return (
+            <div
+              key={`g-${x}`}
+              style={{
+                display: "flex",
+                position: "absolute",
+                left: centro - h * 0.42,
+                top: top - h * 0.12,
+                width: h * 0.84,
+                height: h * 0.84,
+                borderRadius: h,
+                background: "radial-gradient(circle, rgba(198,255,58,0.30) 0%, rgba(198,255,58,0.08) 45%, rgba(5,8,6,0) 70%)",
+              }}
+            />
+          );
+        })}
+        {personas.map((x) => {
+          const d = dim(x);
+          const y = x === "jorge" ? top + h * 0.03 : top;
+          return (
+            <div key={x} style={{ display: "flex", position: "absolute", left: pos[x], top: y, width: d.w, height: d.h }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={fotosPersonas[x]}
+                width={d.w}
+                height={d.h}
+                alt=""
+                style={{ maskImage: `linear-gradient(180deg, rgba(0,0,0,1) 0px, rgba(0,0,0,1) ${Math.max(0, h * 0.5 - (y - top))}px, rgba(0,0,0,0) ${Math.max(1, h * 0.9 - (y - top))}px)` }}
+              />
+            </div>
+          );
+        })}
+        {etiqueta("bernardo", "left", h * (trio ? 0.5 : 0.52), w * 0.02)}
+        {etiqueta("marco", "right", h * (trio ? 0.5 : 0.52), w * 0.02)}
+        {trio && etiqueta("jorge", "left", h * 0.36, w / 2 - dim("jorge").w * 0.62 - 150 * kNombre)}
       </div>
     );
   };
@@ -319,12 +397,12 @@ export async function GET(req: Request) {
     contenido = (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", height: "100%", paddingTop: 56, paddingBottom: 70 }}>
         {etiquetaSuperior(1)}
-        <div style={{ display: "flex", marginTop: 30 }}>{fotoEquipo(1080)}</div>
-        <div style={{ display: "flex", marginTop: -95 }}>{titulo(1)}</div>
-        <div style={{ display: "flex", marginTop: 30 }}>{lema(1)}</div>
-        <div style={{ display: "flex", marginTop: 30 }}>{franjaSede(1)}</div>
-        <div style={{ display: "flex", width: 1000, marginTop: 36 }}>{filaBeneficios(1, 4)}</div>
-        {esSesion && <div style={{ display: "flex", width: 1000, marginTop: 32 }}>{datosSesion(0.95)}</div>}
+        <div style={{ display: "flex", marginTop: 16 }}>{fotoEquipo(1080, 500)}</div>
+        <div style={{ display: "flex", marginTop: -120 }}>{titulo(1)}</div>
+        <div style={{ display: "flex", marginTop: 22 }}>{lema(1)}</div>
+        <div style={{ display: "flex", marginTop: 24 }}>{franjaSede(1)}</div>
+        <div style={{ display: "flex", width: 1000, marginTop: 28 }}>{filaBeneficios(1, 4)}</div>
+        {esSesion && <div style={{ display: "flex", width: 1000, marginTop: 24 }}>{datosSesion(0.95)}</div>}
         <div style={{ display: "flex", flex: 1 }} />
         {bloqueQr(esSesion ? 0.86 : 1.02, esSesion ? 250 : 300)}
         <div style={{ display: "flex", flex: 1 }} />
@@ -333,7 +411,7 @@ export async function GET(req: Request) {
   } else if (C) {
     contenido = (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", height: "100%", paddingTop: 0, paddingBottom: 40 }}>
-        <div style={{ display: "flex" }}>{fotoEquipo(1080)}</div>
+        <div style={{ display: "flex" }}>{fotoEquipo(1080, 430)}</div>
         <div style={{ display: "flex", marginTop: -95 }}>{titulo(0.62)}</div>
         <div style={{ display: "flex", marginTop: 16 }}>{franjaSede(0.66)}</div>
         <div style={{ display: "flex", width: 1000, marginTop: 18 }}>{esSesion ? datosSesion(0.72) : filaBeneficios(0.75, 4)}</div>
@@ -347,7 +425,7 @@ export async function GET(req: Request) {
       <div style={{ display: "flex", width: "100%", height: "100%" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 1020, paddingTop: 50 }}>
           {etiquetaSuperior(0.85)}
-          <div style={{ display: "flex", marginTop: 22 }}>{fotoEquipo(1020)}</div>
+          <div style={{ display: "flex", marginTop: 16 }}>{fotoEquipo(1020, 420)}</div>
           <div style={{ display: "flex", marginTop: -90 }}>{titulo(0.86)}</div>
           <div style={{ display: "flex", marginTop: 20 }}>{lema(0.8)}</div>
         </div>
