@@ -3,6 +3,7 @@ import { NavLinks, type NavItem } from "@/components/nav";
 import { Badge } from "@/components/ui";
 import { ROL_LABEL, type Rol } from "@/lib/types";
 import { cerrarSesion } from "@/app/login/actions";
+import { AvisoNovedades } from "@/components/aviso-novedades";
 
 function navPara(rol: Rol): NavItem[] {
   if (rol === "admin") {
@@ -73,6 +74,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </form>
       </aside>
       <main className="min-w-0 px-4 py-6 md:px-8 md:py-8">{children}</main>
+      <AvisoNovedades usuarioId={perfil.id} />
     </div>
   );
 }
