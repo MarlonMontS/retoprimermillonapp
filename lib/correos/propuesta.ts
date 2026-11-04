@@ -21,7 +21,8 @@ Reglas de redacción:
 - Usa únicamente estas variables: {{nombre}}, {{apellido}}, {{mi_nombre}}, {{mi_enlace}}.
 - Texto plano, sin HTML ni markdown.
 - Nunca prometas ingresos o resultados: la participación no garantiza ventas. Di que es una meta. Solo usa datos que aparezcan en la información del Reto o en las instrucciones.
-- Cada seguimiento aporta un ángulo nuevo y es más corto que el anterior. No regañes por no contestar. El último cierra el tema con amabilidad.`;
+- Cada seguimiento aporta un ángulo nuevo y es más corto que el anterior. No regañes por no contestar. El último cierra el tema con amabilidad.
+- Los seguimientos salen días después del correo inicial y quien envía elige cada cuánto, así que para entonces una fecha ya pudo pasar. Solo el correo inicial puede mencionar fechas. En los seguimientos no pongas fechas concretas ni referencias como "este viernes" o "la próxima semana", ni en el asunto ni en el cuerpo. El enlace lleva al registro, no a un calendario: para conocer fechas, invita a registrarse o a responder el correo.`;
 
 const FALLA = "No se pudo generar la propuesta con IA.";
 
@@ -77,7 +78,7 @@ function plantilla(intencion: Intencion, n: number): PropuestaCorreos {
   };
   const base = [
     { asunto: "¿Lo pudiste ver?", cuerpo: "Hola {{nombre}},\n\nTe compartí el Reto hace unos días. Son $350,000 MXN en premios y lo importante: aprendes haciendo.\n\n{{mi_enlace}}\n\n{{mi_nombre}}" },
-    { asunto: "Última nota de mi parte", cuerpo: "Hola {{nombre}},\n\nNo quiero saturarte, este es mi último correo sobre el tema. Si te interesa, aquí sigue tu lugar para registrarte:\n\n{{mi_enlace}}\n\n{{mi_nombre}}" },
+    { asunto: "Última nota de mi parte", cuerpo: "Hola {{nombre}},\n\nNo quiero saturarte, este es mi último correo sobre el tema. Si te interesa, aquí está el registro:\n\n{{mi_enlace}}\n\n{{mi_nombre}}" },
   ];
   return { inicial, seguimientos: Array.from({ length: n }, (_, i) => base[Math.min(i, base.length - 1)]) };
 }

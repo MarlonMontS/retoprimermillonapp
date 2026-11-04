@@ -147,7 +147,7 @@ export function FlujoCampana({ listas: iniciales, configurado }: { listas: Lista
                   ) : undefined
                 }
               >
-                {i === 0 ? "Correo inicial" : `Seguimiento ${i} · ${frecuencia * i} día${frecuencia * i === 1 ? "" : "s"} después`}
+                {i === 0 ? "Correo inicial" : `Seguimiento ${i} · ${frecuencia * i} día${frecuencia * i === 1 ? "" : "s"} después (aprox. ${new Date(Date.now() + frecuencia * i * 86_400_000).toLocaleDateString("es-MX", { day: "numeric", month: "short" })})`}
               </CardTitle>
               <Field label="Asunto" htmlFor={`a${i}`}>
                 <Input id={`a${i}`} value={p.asunto} onChange={(e) => editar(i, { asunto: e.target.value })} maxLength={150} />

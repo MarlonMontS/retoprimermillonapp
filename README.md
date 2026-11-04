@@ -101,3 +101,15 @@ supabase/migrations          esquema y funciones SQL
   responder (`lib/meta.ts`): correo, WhatsApp y nombre hasheados, IP, user agent y cookies `_fbp`/`_fbc`.
   Meta deduplica contra el evento del navegador por `event_id`. `META_TEST_EVENT_CODE` permite verlo en
   «Probar eventos» del Administrador de eventos.
+
+## Campañas de correo
+
+Módulo en `/app/correos`: cada usuario sube sus listas CSV, la IA propone el correo y sus seguimientos según el objetivo, y las métricas salen de los webhooks de Resend.
+
+Para activar el envío:
+
+1. Verificar un dominio de envío en Resend (por ejemplo `correo.retoprimermillon.com`) con sus registros DNS y encender el rastreo de aperturas y clics.
+2. Crear un webhook hacia `https://registro.retoprimermillon.com/api/webhooks/resend` con los eventos de entrega, apertura, clic, rebote, queja y falla.
+3. Definir en Vercel `RESEND_API_KEY`, `MAIL_FROM` y `RESEND_WEBHOOK_SECRET`. `MAIL_LIMITE_DIARIO` es opcional (100 por defecto, el tope del plan gratuito).
+
+Los seguimientos los envía el cron diario de `vercel.json` (17:00 UTC). `MAIL_SIMULADO=1` simula los envíos para probar en local sin Resend.
