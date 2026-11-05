@@ -79,7 +79,7 @@ export default async function AyudaPage() {
             <CardTitle>Si eres administrador</CardTitle>
             <ol className="space-y-4">
               <Paso n={1} titulo="Equipo">
-                Crea gerentes en Gerentes y líderes en Líderes, uno por uno o pegando tu lista en Importar equipo. Cada alta genera usuario, contraseña y enlace de invitación. Para mover o eliminar a alguien, abre su perfil y busca Mover y eliminar.
+                Crea gerentes en Gerentes y líderes en Líderes, uno por uno o pegando tu lista en Importar equipo. Cada alta genera usuario, contraseña y enlace de invitación. Para mover, convertir o eliminar a alguien, abre su perfil y busca esa sección. Para volver a un lead líder o gerente, ábrelo en Leads.
               </Paso>
               <Paso n={2} titulo="Enlaces y campañas">
                 Ahí están el formulario general para la landing, el código para Framer y los enlaces por campaña o marca. Cada campaña tiene su enlace para saber de dónde llega cada lead.

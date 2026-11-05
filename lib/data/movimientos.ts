@@ -1,8 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ciudadCompatible, getConfig } from "@/lib/data/config";
-import { obtenerPerfil } from "@/lib/data/equipo";
+import { crearUsuario, obtenerPerfil } from "@/lib/data/equipo";
 import { reasignarLead } from "@/lib/data/leads";
-import type { Ciudad, Perfil } from "@/lib/types";
+import type { Ciudad, Lead, Perfil } from "@/lib/types";
 
 /** Lo que se afecta si se mueve o elimina a esta persona. */
 export interface ResumenPerfil {
@@ -136,4 +136,109 @@ export async function eliminarUsuario(input: {
   const { error } = await admin.auth.admin.deleteUser(objetivo.id);
   if (error) throw new Error(error.message);
   return movidos;
+}
+
+/** Un líder pasa a gerente: conserva sus leads y su enlace, y deja de tener gerente. */
+export async function convertirEnGerente(liderId: string) {
+  const admin = createAdminClient();
+  const { error } = await admin.from("perfiles").update({ rol: "gerente", gerente_id: null }).eq("id", liderId);
+  if (error) throw new Error(error.message);
+  await admin.from("fuentes").update({ tipo: "gerente" }).eq("perfil_id", liderId);
+}
+
+/**
+ * Un líder o gerente vuelve a ser lead: se crea su registro y se elimina su usuario.
+ * Si ya existe un lead con ese WhatsApp se reutiliza, para no duplicar a la persona.
+ */
+export async function convertirEnLead(input: {
+  objetivo: Perfil;
+  actorId: string;
+  whatsapp: string;
+  responsableId: string | null;
+  destinoLeads: string | null;
+  destinoGerente: string | null;
+}): Promise<string> {
+  const { objetivo, actorId, whatsapp, responsableId } = input;
+  const admin = createAdminClient();
+  const responsable = responsableId ? await destinoValido(responsableId, ["lider", "gerente"], objetivo.id) : null;
+
+  const { data: existente } = await admin.from("leads").select("id").eq("whatsapp", whatsapp).neq("estatus", "duplicado").limit(1).maybeSingle();
+  let leadId = existente?.id as string | undefined;
+  const creado = !leadId;
+
+  if (!leadId) {
+    const config = await getConfig();
+    const cabe = responsable !== null && ciudadCompatible(config.ciudad_estricta, objetivo.ciudad, responsable.ciudad);
+    const [nombre, ...resto] = objetivo.nombre.trim().split(/\s+/);
+    const { data, error } = await admin
+      .from("leads")
+      .insert({
+        nombre,
+        apellido: resto.join(" ") || null,
+        whatsapp,
+        email: objetivo.email,
+        ciudad: objetivo.ciudad,
+        lider_id: cabe ? responsable.id : null,
+        asignado_at: cabe ? new Date().toISOString() : null,
+        origen_registro: "manual",
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    leadId = data.id as string;
+  }
+
+  try {
+    await eliminarUsuario(input);
+  } catch (e) {
+    if (creado) await admin.from("leads").delete().eq("id", leadId);
+    throw e;
+  }
+  await admin.from("lead_eventos").insert({
+    lead_id: leadId,
+    actor_id: actorId,
+    tipo: "nota",
+    detalle: { texto: `Antes era ${objetivo.rol === "gerente" ? "gerente" : "líder"} del equipo.` },
+  });
+  return leadId;
+}
+
+/**
+ * Un lead se vuelve líder o gerente. Si conservar es true su registro sigue contando
+ * para quien lo invitó; si no, deja de ser lead.
+ */
+export async function convertirLeadEnUsuario(input: {
+  lead: Pick<Lead, "id" | "nombre" | "apellido" | "whatsapp" | "ciudad">;
+  actorId: string;
+  rol: "lider" | "gerente";
+  email: string;
+  gerenteId: string | null;
+  conservar: boolean;
+}) {
+  const { lead, actorId, rol, email, gerenteId, conservar } = input;
+  if (rol === "lider") {
+    if (!gerenteId) throw new Error("Elige su gerente.");
+    await destinoValido(gerenteId, ["gerente"], lead.id);
+  }
+  const creado = await crearUsuario({
+    nombre: [lead.nombre, lead.apellido].filter(Boolean).join(" "),
+    email,
+    telefono: lead.whatsapp,
+    rol,
+    gerente_id: rol === "lider" ? gerenteId : null,
+    ciudad: lead.ciudad,
+  });
+  const admin = createAdminClient();
+  if (conservar) {
+    await admin.from("lead_eventos").insert({
+      lead_id: lead.id,
+      actor_id: actorId,
+      tipo: "nota",
+      detalle: { texto: `Ahora es ${rol === "gerente" ? "gerente" : "líder"} del equipo.` },
+    });
+  } else {
+    const { error } = await admin.from("leads").delete().eq("id", lead.id);
+    if (error) throw new Error(error.message);
+  }
+  return creado;
 }

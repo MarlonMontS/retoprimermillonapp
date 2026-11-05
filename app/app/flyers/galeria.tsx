@@ -16,6 +16,7 @@ export function GaleriaFlyers({ opciones, base, sesiones, sedeInicial }: { opcio
   const [formato, setFormato] = useState<Formato>("vertical");
   const [idx, setIdx] = useState(0);
   const [estado, setEstado] = useState<string | null>(null);
+  const [generandoPdf, setGenerandoPdf] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [sede, setSede] = useState<Sede>(sedeInicial);
   const [sesion, setSesion] = useState<string>(sesiones[0] ?? "");
@@ -29,6 +30,25 @@ export function GaleriaFlyers({ opciones, base, sesiones, sedeInicial }: { opcio
   const nombreArchivo = `reto-tu-primer-millon-${plantilla}-${sede}-${formato}.png`;
   const texto = textoCompartir(op.enlace, { invitador: op.ref ? op.nombre : null, plantilla, sesion: plantilla === "sesion" ? sesion : null, sede });
   const { ancho, alto } = FORMATOS[formato];
+
+  async function descargarPdf() {
+    setEstado(null);
+    setGenerandoPdf(true);
+    try {
+      const r = await fetch(`${src}&pdf=1`);
+      if (!r.ok) throw new Error();
+      const url = URL.createObjectURL(await r.blob());
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = nombreArchivo.replace(/\.png$/, ".pdf");
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch {
+      setEstado("No se pudo generar el PDF. Intenta de nuevo.");
+    } finally {
+      setGenerandoPdf(false);
+    }
+  }
 
   async function compartir() {
     setEstado(null);
@@ -156,6 +176,9 @@ export function GaleriaFlyers({ opciones, base, sesiones, sedeInicial }: { opcio
           >
             Descargar PNG
           </a>
+          <Button type="button" variant="secondary" size="lg" className="h-11 w-full text-sm" disabled={generandoPdf} onClick={descargarPdf}>
+            {generandoPdf ? "Generando PDF…" : "Descargar PDF para imprimir"}
+          </Button>
           <Button type="button" variant="secondary" className="w-full" onClick={compartir}>
             Compartir imagen (celular)
           </Button>
@@ -172,7 +195,7 @@ export function GaleriaFlyers({ opciones, base, sesiones, sedeInicial }: { opcio
           </Button>
           {estado && <p className="text-xs text-muted">{estado}</p>}
           <p className="text-xs text-dim">
-            En el celular, «Compartir imagen» abre WhatsApp, correo o cualquier app con el flyer adjunto. Los botones de WhatsApp y Correo mandan el texto con tu enlace y un link al flyer.
+            El PDF viene en tamaño carta y tarda unos segundos en generarse. En el celular, «Compartir imagen» abre WhatsApp, correo o cualquier app con el flyer adjunto. Los botones de WhatsApp y Correo mandan el texto con tu enlace y un link al flyer.
           </p>
         </div>
       </div>

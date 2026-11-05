@@ -8,9 +8,9 @@ import { listarLideresEstado } from "@/lib/data/equipo";
 import { ciudadCompatible, getConfig } from "@/lib/data/config";
 import { DialogoAccion } from "@/components/dialogo-accion";
 import { Alert, Badge, Button, Card, CardTitle, EstatusBadge, PageHeader } from "@/components/ui";
-import { FormEditar, FormLlamada, FormNota, FormReasignar } from "./acciones";
+import { ConvertirLead, FormEditar, FormLlamada, FormNota, FormReasignar } from "./acciones";
 import { CIUDAD_LABEL, ETAPA_LABEL, EXPERIENCIA_OPCIONES, FUENTE_TIPO_LABEL } from "@/lib/types";
-import { fechaHora, nombreCompleto } from "@/lib/utils";
+import { appUrl, fechaHora, nombreCompleto } from "@/lib/utils";
 import { formatearWhatsapp, linkWhatsapp } from "@/lib/phone";
 import { accionEliminar } from "../actions";
 
@@ -37,8 +37,12 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
   if (!lead) notFound();
 
   const puedeActuar = perfil.rol === "admin" || perfil.rol === "gerente";
+  const equipo = puedeActuar
+    ? await listarLideresEstado({ gerenteId: perfil.rol === "gerente" ? perfil.id : undefined, incluirGerentes: true, soloActivos: true })
+    : [];
+  const gerentes = equipo.filter((l) => l.rol === "gerente").map((l) => ({ id: l.id, nombre: l.nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre));
   const opcionesReasignar = puedeActuar
-    ? (await listarLideresEstado({ gerenteId: perfil.rol === "gerente" ? perfil.id : undefined, incluirGerentes: true, soloActivos: true }))
+    ? equipo
         .filter((l) => l.id === lead.lider_id || ciudadCompatible(config.ciudad_estricta, lead.ciudad, l.ciudad))
         .map((l) => ({
         id: l.id,
@@ -197,7 +201,8 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
                 <FormEditar lead={lead} />
               </Card>
               {perfil.rol === "admin" && (
-                <div className="text-right">
+                <div className="flex flex-wrap justify-end gap-2">
+                  <ConvertirLead leadId={lead.id} nombre={nombreCompleto(lead)} email={lead.email} calificado={lead.estatus === "calificado"} gerentes={gerentes} appUrl={appUrl()} />
                   <DialogoAccion etiqueta="Eliminar lead" titulo={`Eliminar a ${nombreCompleto(lead)}`} peligro>
                     <form action={accionEliminar} className="space-y-3">
                       <input type="hidden" name="lead_id" value={lead.id} />

@@ -94,7 +94,7 @@ export default async function LiderPage({ params }: { params: Promise<{ id: stri
 
       {resumen && (
         <Card className="mt-4">
-          <CardTitle>Mover y eliminar</CardTitle>
+          <CardTitle>Mover, convertir y eliminar</CardTitle>
           <MoverEliminar perfil={perfil} resumen={resumen} gerentes={gerentes} responsables={responsables} />
         </Card>
       )}

@@ -1,8 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
-import { accionEditar, accionLlamada, accionNota, accionReasignar, type AccionState } from "../actions";
-import { Alert, Button, Field, Input, Select, Textarea } from "@/components/ui";
+import { useActionState, useState } from "react";
+import { accionConvertirLead, accionEditar, accionLlamada, accionNota, accionReasignar, type AccionState } from "../actions";
+import { DialogoAccion, enviarSinReiniciar } from "@/components/dialogo-accion";
+import { Credenciales } from "@/components/equipo/credenciales";
+import { Alert, Button, ButtonLink, Field, Input, Select, Textarea } from "@/components/ui";
 import { CIUDAD_LABEL, ETAPA_LABEL, type Ciudad, type Etapa, type LeadEstatus } from "@/lib/types";
 
 const RESULTADOS: { value: LeadEstatus; label: string; desc: string }[] = [
@@ -127,6 +129,77 @@ export function FormReasignar({
         {pending ? "Guardando…" : "Reasignar"}
       </Button>
     </form>
+  );
+}
+
+export function ConvertirLead({
+  leadId,
+  nombre,
+  email,
+  calificado,
+  gerentes,
+  appUrl,
+}: {
+  leadId: string;
+  nombre: string;
+  email: string | null;
+  calificado: boolean;
+  gerentes: { id: string; nombre: string }[];
+  appUrl: string;
+}) {
+  const [state, action, pending] = useActionState<AccionState, FormData>(accionConvertirLead, {});
+  const [rol, setRol] = useState("lider");
+  return (
+    <DialogoAccion etiqueta="Convertir en líder o gerente" titulo={`Convertir a ${nombre}`}>
+      {state.credenciales ? (
+        <div className="space-y-3">
+          <Credenciales credenciales={state.credenciales} appUrl={appUrl} />
+          <ButtonLink href={`/app/lideres/${state.perfilId}`} className="w-full">
+            Ir a su perfil
+          </ButtonLink>
+        </div>
+      ) : (
+        <form onSubmit={enviarSinReiniciar(action)} className="space-y-3">
+          <input type="hidden" name="lead_id" value={leadId} />
+          <p className="text-sm text-muted">Se le crea un usuario con su enlace de invitación y una contraseña nueva.</p>
+          <Field label="Nuevo rol" htmlFor="c_rol">
+            <Select id="c_rol" name="rol" value={rol} onChange={(e) => setRol(e.target.value)}>
+              <option value="lider">Líder</option>
+              <option value="gerente">Gerente</option>
+            </Select>
+          </Field>
+          {rol === "lider" && (
+            <Field label="Su gerente" htmlFor="c_gerente">
+              <Select id="c_gerente" name="gerente_id" defaultValue="" required>
+                <option value="" disabled>
+                  Elige un gerente
+                </option>
+                {gerentes.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.nombre}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          )}
+          <Field label="Correo para entrar a la app" htmlFor="c_email">
+            <Input id="c_email" name="email" type="email" defaultValue={email ?? ""} required />
+          </Field>
+          {calificado ? (
+            <label className="flex items-start gap-2 text-sm text-muted">
+              <input type="checkbox" name="conservar" defaultChecked className="mt-1 accent-[var(--color-accent)]" />
+              Conservarlo también como lead para que siga contando en la cuota de quien lo invitó
+            </label>
+          ) : (
+            <p className="text-sm text-muted">Dejará de aparecer en la lista de leads.</p>
+          )}
+          <Mensaje state={state} />
+          <Button type="submit" className="w-full" disabled={pending}>
+            {pending ? "Convirtiendo…" : "Convertir"}
+          </Button>
+        </form>
+      )}
+    </DialogoAccion>
   );
 }
 

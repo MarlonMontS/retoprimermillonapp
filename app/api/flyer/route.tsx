@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import QRCode from "qrcode";
+import { PDFDocument } from "pdf-lib";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fuentePorSlug } from "@/lib/data/fuentes";
@@ -8,7 +9,8 @@ import { appUrl, slugify } from "@/lib/utils";
 
 /**
  * Flyer público en PNG, estilo de la campaña (negro con verde neón y foto del equipo).
- * /api/flyer?plantilla=registro|sesion&formato=vertical|cuadrado|horizontal&sede=en_linea|tijuana|monterrey&ref=slug[&sesion=2026-11-06][&descargar=1]
+ * /api/flyer?plantilla=registro|sesion&formato=vertical|cuadrado|horizontal&sede=en_linea|tijuana|monterrey&ref=slug[&sesion=2026-11-06][&descargar=1][&pdf=1]
+ * Con pdf=1 sale al doble de resolución en una hoja carta, lista para imprimir.
  * Monterrey lleva a Bernardo, Jorge y Marco; Tijuana y En línea solo a Bernardo y Marco.
  */
 
@@ -127,12 +129,28 @@ function Rayos({ ancho, alto }: { ancho: number; alto: number }) {
   );
 }
 
+export const maxDuration = 60;
+const ESCALA_PDF = 2;
+
+/** Centra el flyer en una hoja carta con margen de 1/4 de pulgada para que la impresora no lo corte. */
+async function hojaCarta(png: Uint8Array, apaisada: boolean) {
+  const [anchoHoja, altoHoja] = apaisada ? [792, 612] : [612, 792];
+  const margen = 18;
+  const doc = await PDFDocument.create();
+  doc.setTitle("Reto Tu Primer Millón");
+  const imagen = await doc.embedPng(png);
+  const { width, height } = imagen.scaleToFit(anchoHoja - margen * 2, altoHoja - margen * 2);
+  doc.addPage([anchoHoja, altoHoja]).drawImage(imagen, { x: (anchoHoja - width) / 2, y: (altoHoja - height) / 2, width, height });
+  return doc.save();
+}
+
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const formato: Formato = esFormato(url.searchParams.get("formato")) ? (url.searchParams.get("formato") as Formato) : "vertical";
   const plantilla: Plantilla = esPlantilla(url.searchParams.get("plantilla")) ? (url.searchParams.get("plantilla") as Plantilla) : "registro";
   const ref = url.searchParams.get("ref");
   const descargar = url.searchParams.get("descargar") === "1";
+  const pdf = url.searchParams.get("pdf") === "1";
   const pedida = url.searchParams.get("sesion");
   const sesion = pedida && (SESIONES as readonly string[]).includes(pedida) ? pedida : sesionesVigentes()[0] ?? SESIONES[SESIONES.length - 1];
   const s = etiquetaSesion(sesion);
@@ -439,8 +457,7 @@ export async function GET(req: Request) {
     );
   }
 
-  const imagen = new ImageResponse(
-    (
+  const flyer = (
       <div
         style={{
           display: "flex",
@@ -456,15 +473,27 @@ export async function GET(req: Request) {
         <Rayos ancho={ancho} alto={alto} />
         {contenido}
       </div>
-    ),
-    { width: ancho, height: alto, fonts: await cargarFuentes() }
   );
+  const fonts = await cargarFuentes();
+  const base = `reto-tu-primer-millon-${plantilla}-${sede}${esSesion ? `-${sesion}` : ""}-${formato}${fuente ? `-${slugify(fuente.slug)}` : ""}`;
+  if (pdf) {
+    // Se rasteriza aparte: ImageResponse no separa la escala de la imagen de la del diseño.
+    const [{ default: satori }, { Resvg }] = await Promise.all([import("satori"), import("@resvg/resvg-js")]);
+    // resvg nativo truena con rectángulos de tamaño cero, y no dibujan nada.
+    const svg = (await satori(flyer, { width: ancho, height: alto, fonts })).replace(/<rect[^<>]*\b(?:width|height)="0"[^<>]*\/>/g, "");
+    const png = new Resvg(svg, { fitTo: { mode: "zoom", value: ESCALA_PDF } }).render().asPng();
+    return new Response(Buffer.from(await hojaCarta(png, ancho > alto)), {
+      headers: {
+        "content-type": "application/pdf",
+        "content-disposition": `attachment; filename="${base}.pdf"`,
+        "cache-control": "public, max-age=600, s-maxage=3600",
+      },
+    });
+  }
 
+  const imagen = new ImageResponse(flyer, { width: ancho, height: alto, fonts });
   const headers = new Headers(imagen.headers);
   headers.set("cache-control", "public, max-age=600, s-maxage=3600");
-  if (descargar) {
-    const nombre = `reto-tu-primer-millon-${plantilla}-${sede}${esSesion ? `-${sesion}` : ""}-${formato}${fuente ? `-${slugify(fuente.slug)}` : ""}.png`;
-    headers.set("content-disposition", `attachment; filename="${nombre}"`);
-  }
+  if (descargar) headers.set("content-disposition", `attachment; filename="${base}.png"`);
   return new Response(imagen.body, { status: 200, headers });
 }

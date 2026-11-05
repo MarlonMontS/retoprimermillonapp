@@ -1,7 +1,16 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { startTransition, useEffect, useRef, type FormEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui";
+
+/** Envía el formulario sin que React lo reinicie: si hay un error, lo capturado sigue ahí. */
+export function enviarSinReiniciar(action: (fd: FormData) => void) {
+  return (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    startTransition(() => action(fd));
+  };
+}
 
 /** Botón que abre una ventana de confirmación. Se usa para acciones difíciles de deshacer. */
 export function DialogoAccion({

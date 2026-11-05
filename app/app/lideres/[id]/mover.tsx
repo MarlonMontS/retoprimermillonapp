@@ -3,13 +3,15 @@
 import { useActionState, type ReactNode } from "react";
 import {
   accionCambiarGerente,
+  accionConvertirEnGerente,
+  accionConvertirEnLead,
   accionConvertirEnLider,
   accionEliminarUsuario,
   accionMoverEquipo,
   accionMoverLeads,
   type EquipoState,
 } from "../actions";
-import { DialogoAccion } from "@/components/dialogo-accion";
+import { DialogoAccion, enviarSinReiniciar } from "@/components/dialogo-accion";
 import { Alert, Button, Field, Input, Select } from "@/components/ui";
 import type { ResumenPerfil } from "@/lib/data/movimientos";
 import type { Perfil } from "@/lib/types";
@@ -66,13 +68,13 @@ function AccionMover({
   titulo: string;
   aviso: string;
   confirmar: string;
-  campo: string;
-  nombreCampo: string;
+  campo?: string;
+  nombreCampo?: string;
   fila: { titulo: string; texto: string };
   defaultValue?: string;
   /** Sin nada que mover ya no hay botón, pero el mensaje del resultado sigue visible. */
   oculto?: boolean;
-  children: ReactNode;
+  children?: ReactNode;
 }) {
   const [state, action, pending] = useActionState<EquipoState, FormData>(accion, {});
   const campoId = `${nombreCampo}-${confirmar.replace(/\s/g, "-")}`;
@@ -86,11 +88,13 @@ function AccionMover({
               <form action={action} className="space-y-3">
                 <input type="hidden" name="id" value={id} />
                 <p className="text-sm text-muted">{aviso}</p>
-                <Field label={campo} htmlFor={campoId}>
-                  <Select id={campoId} name={nombreCampo} defaultValue={defaultValue ?? ""} required>
-                    {children}
-                  </Select>
-                </Field>
+                {campo && (
+                  <Field label={campo} htmlFor={campoId}>
+                    <Select id={campoId} name={nombreCampo} defaultValue={defaultValue ?? ""} required>
+                      {children}
+                    </Select>
+                  </Field>
+                )}
                 <Button type="submit" className="w-full" disabled={pending}>
                   {pending ? "Guardando…" : confirmar}
                 </Button>
@@ -105,25 +109,29 @@ function AccionMover({
   );
 }
 
-function EliminarUsuario({
+function QuitarUsuario({
+  modo,
   perfil,
   resumen,
   gerentes,
   responsables,
 }: {
+  modo: "eliminar" | "lead";
   perfil: Perfil;
   resumen: ResumenPerfil;
   gerentes: Opcion[];
   responsables: Opcion[];
 }) {
-  const [state, action, pending] = useActionState<EquipoState, FormData>(accionEliminarUsuario, {});
+  const esLead = modo === "lead";
+  const palabra = esLead ? "CONVERTIR" : "ELIMINAR";
+  const [state, action, pending] = useActionState<EquipoState, FormData>(esLead ? accionConvertirEnLead : accionEliminarUsuario, {});
   return (
     <Fila
-      titulo="Eliminar usuario"
-      texto="Definitivo. Sus leads y su equipo no se pierden: pasan a quien elijas."
+      titulo={esLead ? "Convertir en lead" : "Eliminar usuario"}
+      texto={esLead ? "Pierde su usuario y vuelve a la lista de leads." : "Definitivo. Sus leads y su equipo no se pierden: pasan a quien elijas."}
       accion={
-        <DialogoAccion etiqueta="Eliminar" titulo={`Eliminar a ${perfil.nombre}`} peligro>
-          <form action={action} className="space-y-3">
+        <DialogoAccion etiqueta={esLead ? "Convertir en lead" : "Eliminar"} titulo={`${esLead ? "Convertir en lead a" : "Eliminar a"} ${perfil.nombre}`} peligro>
+          <form onSubmit={enviarSinReiniciar(action)} className="space-y-3">
             <input type="hidden" name="id" value={perfil.id} />
             <ul className="list-disc space-y-1 pl-5 text-sm text-muted">
               <li>Esto no se puede deshacer. Su acceso y su enlace de invitación dejan de funcionar.</li>
@@ -136,9 +144,25 @@ function EliminarUsuario({
               )}
               <li>Si solo quieres quitarle el acceso, mejor desactívalo en Datos.</li>
             </ul>
+            {esLead && (
+              <>
+                <Field label="Su WhatsApp" htmlFor="q_whatsapp">
+                  <Input id="q_whatsapp" name="whatsapp" defaultValue={perfil.telefono ?? ""} required />
+                </Field>
+                <Field label="¿Quién queda como su responsable?" htmlFor="q_responsable" hint="Si es de otra ciudad, queda en la bolsa común. Si ya existe como lead, se conserva ese registro.">
+                  <Select id="q_responsable" name="responsable" defaultValue="" required>
+                    <option value="" disabled>
+                      Elige un responsable
+                    </option>
+                    <option value="bolsa">Bolsa común (sin responsable)</option>
+                    <Opciones lista={responsables} />
+                  </Select>
+                </Field>
+              </>
+            )}
             {resumen.lideres > 0 && (
-              <Field label={`¿A qué gerente ${resumen.lideres === 1 ? "pasa" : "pasan"} ${sus(resumen.lideres, "líder", "líderes")}?`} htmlFor="destino_gerente">
-                <Select id="destino_gerente" name="destino_gerente" defaultValue="" required>
+              <Field label={`¿A qué gerente ${resumen.lideres === 1 ? "pasa" : "pasan"} ${sus(resumen.lideres, "líder", "líderes")}?`} htmlFor={`destino_gerente-${modo}`}>
+                <Select id={`destino_gerente-${modo}`} name="destino_gerente" defaultValue="" required>
                   <option value="" disabled>
                     Elige un gerente
                   </option>
@@ -147,8 +171,8 @@ function EliminarUsuario({
               </Field>
             )}
             {resumen.leads > 0 && (
-              <Field label={`¿Quién recibe ${sus(resumen.leads, "lead", "leads")}?`} htmlFor="destino_leads" hint="Los de otra ciudad se van a la bolsa común.">
-                <Select id="destino_leads" name="destino_leads" defaultValue="" required>
+              <Field label={`¿Quién recibe ${sus(resumen.leads, "lead", "leads")}?`} htmlFor={`destino_leads-${modo}`} hint="Los de otra ciudad se van a la bolsa común.">
+                <Select id={`destino_leads-${modo}`} name="destino_leads" defaultValue="" required>
                   <option value="" disabled>
                     Elige un responsable
                   </option>
@@ -157,12 +181,12 @@ function EliminarUsuario({
                 </Select>
               </Field>
             )}
-            <Field label="Escribe ELIMINAR para confirmar" htmlFor="confirmacion">
-              <Input id="confirmacion" name="confirmacion" required autoComplete="off" pattern="ELIMINAR" title="Escribe ELIMINAR, en mayúsculas" />
+            <Field label={`Escribe ${palabra} para confirmar`} htmlFor={`confirmacion-${modo}`}>
+              <Input id={`confirmacion-${modo}`} name="confirmacion" required autoComplete="off" pattern={palabra} title={`Escribe ${palabra}, en mayúsculas`} />
             </Field>
             {state.error && <Alert tone="danger">{state.error}</Alert>}
             <Button type="submit" variant="danger" className="w-full" disabled={pending}>
-              {pending ? "Eliminando…" : "Eliminar definitivamente"}
+              {pending ? "Guardando…" : esLead ? "Convertir en lead" : "Eliminar definitivamente"}
             </Button>
           </form>
         </DialogoAccion>
@@ -204,6 +228,17 @@ export function MoverEliminar({
           <Opciones lista={gerentes} />
         </AccionMover>
       )}
+      {perfil.rol === "lider" && (
+        <AccionMover
+          id={perfil.id}
+          accion={accionConvertirEnGerente}
+          etiqueta="Convertir en gerente"
+          titulo={`Convertir a ${nombre} en gerente`}
+          aviso={`${nombre} conserva sus leads y su enlace, deja de competir por la cuota de líder y podrá tener su propio equipo.`}
+          confirmar="Convertir en gerente"
+          fila={{ titulo: "Rol", texto: "Pasa de líder a gerente." }}
+        />
+      )}
       {perfil.rol === "gerente" && (
         <AccionMover
           oculto={resumen.lideres === 0}
@@ -227,13 +262,13 @@ export function MoverEliminar({
         <AccionMover
           id={perfil.id}
           accion={accionConvertirEnLider}
-          etiqueta="Pasar a líder"
-          titulo={`Pasar a ${nombre} a líder`}
+          etiqueta="Convertir en líder"
+          titulo={`Convertir a ${nombre} en líder`}
           aviso={`${nombre} queda como líder en el equipo que elijas, conserva sus leads y su enlace, y deja de ver a su equipo.${resumen.lideres > 0 ? ` ${resumen.lideres === 1 ? "Su líder se va" : `Sus ${resumen.lideres} líderes se van`} al mismo gerente.` : ""}`}
-          confirmar="Pasar a líder"
+          confirmar="Convertir en líder"
           campo="Queda en el equipo de"
           nombreCampo="destino"
-          fila={{ titulo: "Mover a otro equipo", texto: "Deja de ser gerente y queda como líder de otro gerente." }}
+          fila={{ titulo: "Rol", texto: "Pasa de gerente a líder en el equipo de otro gerente." }}
         >
           <option value="" disabled>
             Elige un gerente
@@ -259,7 +294,8 @@ export function MoverEliminar({
         <option value="bolsa">Bolsa común (sin responsable)</option>
         <Opciones lista={otrosResponsables} />
       </AccionMover>
-      <EliminarUsuario perfil={perfil} resumen={resumen} gerentes={otrosGerentes} responsables={otrosResponsables} />
+      <QuitarUsuario modo="lead" perfil={perfil} resumen={resumen} gerentes={otrosGerentes} responsables={otrosResponsables} />
+      <QuitarUsuario modo="eliminar" perfil={perfil} resumen={resumen} gerentes={otrosGerentes} responsables={otrosResponsables} />
     </div>
   );
 }

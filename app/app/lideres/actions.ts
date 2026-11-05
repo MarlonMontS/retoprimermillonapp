@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requirePerfil } from "@/lib/auth";
 import { actualizarPerfil, crearUsuario, listarPerfiles, obtenerPerfil, restablecerPassword } from "@/lib/data/equipo";
-import { convertirEnLider, eliminarUsuario, moverEquipo, moverLeads } from "@/lib/data/movimientos";
+import { convertirEnGerente, convertirEnLead, convertirEnLider, eliminarUsuario, moverEquipo, moverLeads } from "@/lib/data/movimientos";
+import { normalizarWhatsapp } from "@/lib/phone";
 import { detectarCiudad } from "@/lib/utils";
 import type { Ciudad, Perfil, Rol } from "@/lib/types";
 
@@ -143,6 +144,41 @@ export async function accionConvertirEnLider(_prev: EquipoState, fd: FormData): 
   } catch (e) {
     return { error: mensajeError(e, "No se pudo cambiar.") };
   }
+}
+
+export async function accionConvertirEnGerente(_prev: EquipoState, fd: FormData): Promise<EquipoState> {
+  try {
+    const { objetivo } = await objetivoDeAdmin(fd, ["lider"]);
+    await convertirEnGerente(objetivo.id);
+    revalidar();
+    return { ok: true, mensaje: `${objetivo.nombre} ahora es gerente.` };
+  } catch (e) {
+    return { error: mensajeError(e, "No se pudo cambiar.") };
+  }
+}
+
+export async function accionConvertirEnLead(_prev: EquipoState, fd: FormData): Promise<EquipoState> {
+  let leadId: string;
+  try {
+    const { actor, objetivo } = await objetivoDeAdmin(fd, ["lider", "gerente"]);
+    if (String(fd.get("confirmacion") ?? "").trim() !== "CONVERTIR") return { error: "Escribe CONVERTIR, en mayúsculas, para confirmar." };
+    const whatsapp = normalizarWhatsapp(String(fd.get("whatsapp") ?? ""));
+    if (!whatsapp) return { error: "Revisa el número de WhatsApp." };
+    const responsable = String(fd.get("responsable") ?? "");
+    const destinoLeads = String(fd.get("destino_leads") ?? "");
+    leadId = await convertirEnLead({
+      objetivo,
+      actorId: actor.id,
+      whatsapp,
+      responsableId: responsable && responsable !== "bolsa" ? responsable : null,
+      destinoLeads: destinoLeads && destinoLeads !== "bolsa" ? destinoLeads : null,
+      destinoGerente: String(fd.get("destino_gerente") ?? "") || null,
+    });
+  } catch (e) {
+    return { error: mensajeError(e, "No se pudo convertir.") };
+  }
+  revalidar();
+  redirect(`/app/leads/${leadId}`);
 }
 
 export async function accionMoverLeads(_prev: EquipoState, fd: FormData): Promise<EquipoState> {

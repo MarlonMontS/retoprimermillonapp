@@ -11,6 +11,7 @@ import {
   reasignarLead,
   registrarLlamada,
 } from "@/lib/data/leads";
+import { convertirLeadEnUsuario } from "@/lib/data/movimientos";
 import { normalizarWhatsapp } from "@/lib/phone";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Ciudad, Etapa, LeadEstatus } from "@/lib/types";
@@ -19,6 +20,8 @@ export interface AccionState {
   ok?: boolean;
   mensaje?: string;
   error?: string;
+  credenciales?: { nombre: string; email: string; password: string }[];
+  perfilId?: string;
 }
 
 async function leadConPermiso(leadId: string) {
@@ -131,6 +134,33 @@ export async function accionEditar(_prev: AccionState, fd: FormData): Promise<Ac
     return { ok: true, mensaje: "Datos actualizados." };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Error al guardar." };
+  }
+}
+
+/** No revalida: si el lead se borra, la pantalla debe seguir mostrando la contraseña generada. */
+export async function accionConvertirLead(_prev: AccionState, fd: FormData): Promise<AccionState> {
+  try {
+    const leadId = String(fd.get("lead_id"));
+    const { perfil, lead } = await leadConPermiso(leadId);
+    if (perfil.rol !== "admin") return { error: "Solo el administrador puede convertir leads." };
+    const email = String(fd.get("email") ?? "").trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { error: "Escribe un correo válido: con él entrará a la app." };
+    const creado = await convertirLeadEnUsuario({
+      lead,
+      actorId: perfil.id,
+      rol: fd.get("rol") === "gerente" ? "gerente" : "lider",
+      email,
+      gerenteId: String(fd.get("gerente_id") ?? "") || null,
+      conservar: fd.get("conservar") === "on",
+    });
+    return {
+      ok: true,
+      perfilId: creado.perfil.id,
+      credenciales: [{ nombre: creado.perfil.nombre, email: creado.perfil.email, password: creado.password }],
+    };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "No se pudo convertir.";
+    return { error: /already|registered|exists/i.test(msg) ? "Ya existe un usuario con ese correo." : msg };
   }
 }
 
