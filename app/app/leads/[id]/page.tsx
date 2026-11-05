@@ -6,7 +6,8 @@ import { scopeDe } from "@/lib/data/scope";
 import { obtenerLead } from "@/lib/data/leads";
 import { listarLideresEstado } from "@/lib/data/equipo";
 import { ciudadCompatible, getConfig } from "@/lib/data/config";
-import { Alert, Badge, Card, CardTitle, EstatusBadge, PageHeader } from "@/components/ui";
+import { DialogoAccion } from "@/components/dialogo-accion";
+import { Alert, Badge, Button, Card, CardTitle, EstatusBadge, PageHeader } from "@/components/ui";
 import { FormEditar, FormLlamada, FormNota, FormReasignar } from "./acciones";
 import { CIUDAD_LABEL, ETAPA_LABEL, EXPERIENCIA_OPCIONES, FUENTE_TIPO_LABEL } from "@/lib/types";
 import { fechaHora, nombreCompleto } from "@/lib/utils";
@@ -196,10 +197,20 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
                 <FormEditar lead={lead} />
               </Card>
               {perfil.rol === "admin" && (
-                <form action={accionEliminar} className="text-right">
-                  <input type="hidden" name="lead_id" value={lead.id} />
-                  <button className="text-xs text-dim underline-offset-2 hover:text-danger hover:underline">Eliminar este lead definitivamente</button>
-                </form>
+                <div className="text-right">
+                  <DialogoAccion etiqueta="Eliminar lead" titulo={`Eliminar a ${nombreCompleto(lead)}`} peligro>
+                    <form action={accionEliminar} className="space-y-3">
+                      <input type="hidden" name="lead_id" value={lead.id} />
+                      <p className="text-sm text-muted">
+                        Se borra con todo su historial y no se puede deshacer.
+                        {lead.estatus === "calificado" ? " Como está calificado, también deja de contar para la cuota de su responsable." : ""}
+                      </p>
+                      <Button type="submit" variant="danger" className="w-full">
+                        Eliminar definitivamente
+                      </Button>
+                    </form>
+                  </DialogoAccion>
+                </div>
               )}
             </>
           ) : (

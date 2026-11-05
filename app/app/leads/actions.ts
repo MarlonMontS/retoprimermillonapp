@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requirePerfil } from "@/lib/auth";
 import { incluye, scopeDe } from "@/lib/data/scope";
 import {
@@ -134,10 +135,11 @@ export async function accionEditar(_prev: AccionState, fd: FormData): Promise<Ac
 }
 
 export async function accionEliminar(fd: FormData): Promise<void> {
-  const perfil = await requirePerfil(["admin"]);
+  await requirePerfil(["admin"]);
   const leadId = String(fd.get("lead_id"));
   const admin = createAdminClient();
-  await admin.from("leads").delete().eq("id", leadId);
-  void perfil;
-  revalidatePath("/app/leads");
+  const { error } = await admin.from("leads").delete().eq("id", leadId);
+  if (error) throw new Error(error.message);
+  revalidatePath("/app", "layout");
+  redirect("/app/leads");
 }

@@ -8,11 +8,9 @@ import { CIUDAD_LABEL, type Ciudad, type Perfil } from "@/lib/types";
 
 export function FormEditarPerfil({
   perfil,
-  gerentes,
   esAdmin,
 }: {
   perfil: Perfil;
-  gerentes: { id: string; nombre: string }[];
   esAdmin: boolean;
 }) {
   const [state, action, pending] = useActionState<EquipoState, FormData>(accionActualizarPerfil, {});
@@ -36,18 +34,6 @@ export function FormEditarPerfil({
             ))}
           </Select>
         </Field>
-        {esAdmin && perfil.rol === "lider" && (
-          <Field label="Gerente responsable" htmlFor="p_gerente">
-            <Select id="p_gerente" name="gerente_id" defaultValue={perfil.gerente_id ?? ""}>
-              <option value="">Sin gerente</option>
-              {gerentes.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.nombre}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        )}
         {esAdmin && perfil.rol === "lider" && (
           <Field label="Bolsa común" htmlFor="p_bolsa" hint="Normalmente se desbloquea sola al cumplir la cuota.">
             <Select id="p_bolsa" name="bolsa_manual" defaultValue={perfil.bolsa_manual === null ? "auto" : perfil.bolsa_manual ? "abierta" : "cerrada"}>
