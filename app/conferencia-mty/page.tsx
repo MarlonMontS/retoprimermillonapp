@@ -16,7 +16,7 @@ export default async function ConferenciaPage({ searchParams }: { searchParams: 
       tema={tema(sp)}
       pixel={false}
       titulo="Conferencia de apertura en Monterrey"
-      subtitulo="Regístrate para asistir a la conferencia de apertura del Reto Tu Primer Millón en Monterrey. La entrada es gratuita y abierta al público."
+      subtitulo="Sábado 14 de noviembre · 7:00 p.m. Regístrate para asistir a la conferencia de apertura del Reto Tu Primer Millón en Monterrey. La entrada es gratuita y abierta al público."
     >
       <ConferenciaForm utm={leerUtm(sp)} embed={embed} avisoUrl={await urlAviso()} />
     </PublicShell>
