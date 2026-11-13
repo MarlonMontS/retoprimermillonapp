@@ -10,12 +10,15 @@ export function PublicShell({
   tema,
   titulo,
   subtitulo,
+  pixel = true,
 }: {
   children: ReactNode;
   embed: boolean;
   tema?: string;
   titulo?: string;
   subtitulo?: string;
+  /** Sin el pixel de Meta del Reto, para páginas que no son del Reto. */
+  pixel?: boolean;
 }) {
   useEffect(() => {
     if (tema === "claro") document.body.dataset.tema = "claro";
@@ -27,7 +30,7 @@ export function PublicShell({
   if (embed) {
     return (
       <div className="mx-auto w-full max-w-2xl p-2 sm:p-4">
-        <MetaPixel />
+        {pixel && <MetaPixel />}
         {children}
       </div>
     );
@@ -35,7 +38,7 @@ export function PublicShell({
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col px-4 py-8 sm:py-12">
-      <MetaPixel />
+      {pixel && <MetaPixel />}
       <header className="mb-8">
         <p className="text-xs font-semibold uppercase tracking-[0.25em] text-accent">Reto Primer Millón</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">{titulo ?? "Regístrate al Reto"}</h1>

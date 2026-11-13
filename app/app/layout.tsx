@@ -18,6 +18,7 @@ function navPara(rol: Rol): NavItem[] {
       { href: "/app/config", label: "Configuración" },
       { href: "/app/flyers", label: "Flyers" },
       { href: "/app/correos", label: "Correos" },
+      { href: "/app/conferencia", label: "Conferencia MTY" },
       { href: "/app/asistente", label: "Soporte 24/7" },
       { href: "/app/cuenta", label: "Mi cuenta" },
       { href: "/app/ayuda", label: "Ayuda" },
