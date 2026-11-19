@@ -36,6 +36,8 @@ export function FlujoCampana({ listas: iniciales, configurado }: { listas: Lista
   const [consentimiento, setConsentimiento] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [aviso, setAviso] = useState<{ ok?: string; error?: string }>({});
+  // Hora de referencia fija al abrir el flujo, para que la fecha estimada no cambie en cada render.
+  const [ahora] = useState(() => Date.now());
 
   const lista = listas.find((l) => l.id === listaId);
 
@@ -147,7 +149,7 @@ export function FlujoCampana({ listas: iniciales, configurado }: { listas: Lista
                   ) : undefined
                 }
               >
-                {i === 0 ? "Correo inicial" : `Seguimiento ${i} · ${frecuencia * i} día${frecuencia * i === 1 ? "" : "s"} después (aprox. ${new Date(Date.now() + frecuencia * i * 86_400_000).toLocaleDateString("es-MX", { day: "numeric", month: "short" })})`}
+                {i === 0 ? "Correo inicial" : `Seguimiento ${i} · ${frecuencia * i} día${frecuencia * i === 1 ? "" : "s"} después (aprox. ${new Date(ahora + frecuencia * i * 86_400_000).toLocaleDateString("es-MX", { day: "numeric", month: "short" })})`}
               </CardTitle>
               <Field label="Asunto" htmlFor={`a${i}`}>
                 <Input id={`a${i}`} value={p.asunto} onChange={(e) => editar(i, { asunto: e.target.value })} maxLength={150} />
