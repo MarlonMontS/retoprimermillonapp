@@ -5,7 +5,7 @@ import { accionConvertirLead, accionEditar, accionLlamada, accionNota, accionRea
 import { DialogoAccion, enviarSinReiniciar } from "@/components/dialogo-accion";
 import { Credenciales } from "@/components/equipo/credenciales";
 import { Alert, Button, ButtonLink, Field, Input, Select, Textarea } from "@/components/ui";
-import { CIUDAD_LABEL, ETAPA_LABEL, type Ciudad, type Etapa, type LeadEstatus } from "@/lib/types";
+import { CIUDAD_LABEL, type Ciudad, type Etapa, type LeadEstatus } from "@/lib/types";
 
 const RESULTADOS: { value: LeadEstatus; label: string; desc: string }[] = [
   { value: "calificado", label: "Calificado", desc: "Pasó el filtro. Suma a la cuota del responsable." },
@@ -244,18 +244,6 @@ export function FormEditar({
             ))}
           </Select>
         </Field>
-        {lead.estatus === "calificado" && (
-          <Field label="Etapa en el Reto" htmlFor="e_etapa" hint="Seguimiento después de calificar.">
-            <Select id="e_etapa" name="etapa" defaultValue={lead.etapa ?? ""}>
-              <option value="">Sin etapa</option>
-              {(Object.keys(ETAPA_LABEL) as Etapa[]).map((e) => (
-                <option key={e} value={e}>
-                  {ETAPA_LABEL[e]}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        )}
       </div>
       <Mensaje state={state} />
       <Button type="submit" variant="secondary" size="sm" disabled={pending}>

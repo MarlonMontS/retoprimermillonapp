@@ -14,7 +14,7 @@ import {
 import { convertirLeadEnUsuario } from "@/lib/data/movimientos";
 import { normalizarWhatsapp } from "@/lib/phone";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { Ciudad, Etapa, LeadEstatus } from "@/lib/types";
+import type { Ciudad, LeadEstatus } from "@/lib/types";
 
 export interface AccionState {
   ok?: boolean;
@@ -121,14 +121,12 @@ export async function accionEditar(_prev: AccionState, fd: FormData): Promise<Ac
     const whatsapp = normalizarWhatsapp(String(fd.get("whatsapp") ?? ""));
     if (!whatsapp) return { error: "Revisa el número de WhatsApp." };
     const ciudad = String(fd.get("ciudad") ?? "") as Ciudad | "";
-    const etapa = String(fd.get("etapa") ?? "") as Etapa | "";
     await actualizarLead(leadId, perfil.id, {
       nombre: String(fd.get("nombre") ?? "").trim(),
       apellido: String(fd.get("apellido") ?? "").trim() || null,
       whatsapp,
       email: String(fd.get("email") ?? "").trim().toLowerCase() || null,
       ciudad: ciudad || null,
-      etapa: etapa || null,
     });
     revalidar(leadId);
     return { ok: true, mensaje: "Datos actualizados." };

@@ -12,6 +12,7 @@ function navPara(rol: Rol): NavItem[] {
       { href: "/app/leads", label: "Leads" },
       { href: "/app/lideres", label: "Líderes" },
       { href: "/app/gerentes", label: "Gerentes" },
+      { href: "/app/seguimiento", label: "Seguimiento" },
       { href: "/app/bolsa", label: "Bolsa común" },
       { href: "/app/fuentes", label: "Enlaces y campañas" },
       { href: "/app/importar", label: "Importar" },
@@ -28,6 +29,7 @@ function navPara(rol: Rol): NavItem[] {
     return [
       { href: "/app", label: "Tablero" },
       { href: "/app/leads", label: "Leads de mi equipo" },
+      { href: "/app/seguimiento", label: "Seguimiento" },
       { href: "/app/lideres", label: "Mi equipo" },
       { href: "/app/flyers", label: "Flyers" },
       { href: "/app/correos", label: "Correos" },
@@ -39,6 +41,7 @@ function navPara(rol: Rol): NavItem[] {
   return [
     { href: "/app", label: "Mi avance" },
     { href: "/app/leads", label: "Mis invitados" },
+    { href: "/app/seguimiento", label: "Seguimiento" },
     { href: "/app/ranking", label: "Ranking" },
     { href: "/app/flyers", label: "Flyers" },
       { href: "/app/correos", label: "Correos" },

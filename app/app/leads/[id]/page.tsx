@@ -13,6 +13,9 @@ import { CIUDAD_LABEL, ETAPA_LABEL, EXPERIENCIA_OPCIONES, FUENTE_TIPO_LABEL } fr
 import { appUrl, fechaHora, nombreCompleto } from "@/lib/utils";
 import { formatearWhatsapp, linkWhatsapp } from "@/lib/phone";
 import { accionEliminar } from "../actions";
+import { accionEliminarVenta } from "../../seguimiento/actions";
+import { AsistenciaPersona, FormEtapa, FormVenta } from "../../seguimiento/formularios";
+import { aplicaA, asistenciasDe, fechaSesion, hoyIso, listarSesiones, pesos, ventasDe, VENTA_ESTATUS_LABEL, VENTA_TIPO_LABEL } from "@/lib/data/seguimiento";
 
 export const metadata: Metadata = { title: "Lead" };
 export const dynamic = "force-dynamic";
@@ -50,6 +53,14 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
         detalle: l.rol === "gerente" ? "Gerente" : l.gerente_nombre ?? undefined,
       }))
     : [];
+
+  const esParticipante = lead.estatus === "calificado";
+  const [sesiones, asistencias, ventas] = esParticipante
+    ? await Promise.all([listarSesiones(), asistenciasDe([lead.id]), ventasDe([lead.id])])
+    : [[], new Map<string, Map<string, boolean>>(), []];
+  const hoy = hoyIso();
+  const susSesiones = sesiones.filter((x) => aplicaA(x, lead.ciudad));
+  const marcas = asistencias.get(lead.id);
 
   const experiencia = EXPERIENCIA_OPCIONES.find((o) => o.value === lead.experiencia)?.label ?? lead.experiencia;
   const utms = [lead.utm_source, lead.utm_medium, lead.utm_campaign, lead.utm_content].filter(Boolean).join(" · ");
@@ -154,6 +165,63 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
                   </li>
                 ))}
               </ul>
+            </Card>
+          )}
+
+          {esParticipante && (
+            <Card>
+              <CardTitle>Seguimiento en el Reto</CardTitle>
+              <FormEtapa leadId={lead.id} etapa={lead.etapa} />
+
+              <h3 className="mt-6 mb-1 text-sm font-semibold">Asistencia</h3>
+              {susSesiones.length === 0 ? (
+                <p className="text-sm text-muted">Todavía no hay sesiones cargadas para su sede.</p>
+              ) : (
+                <AsistenciaPersona
+                  leadId={lead.id}
+                  sesiones={susSesiones.map((x) => {
+                    const m = marcas?.get(x.id);
+                    return { id: x.id, nombre: x.nombre, detalle: `${fechaSesion(x)}${x.fecha > hoy ? " · próxima" : ""}`, valor: m === undefined ? "" : m ? "si" : "no" };
+                  })}
+                />
+              )}
+
+              <h3 className="mt-6 mb-2 text-sm font-semibold">Ventas</h3>
+              {ventas.length > 0 && (
+                <ul className="mb-4 divide-y divide-line rounded-xl border border-line">
+                  {ventas.map((v) => (
+                    <li key={v.id} className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="text-sm">
+                        <span className="font-medium">{pesos(v.monto)}</span>
+                        <span className="text-muted">
+                          {" "}
+                          · {VENTA_TIPO_LABEL[v.tipo]}
+                          {v.desarrollo ? ` en ${v.desarrollo}` : ""}
+                        </span>{" "}
+                        <Badge tone={v.estatus === "cerrada" ? "accent" : v.estatus === "cancelada" ? "danger" : "warn"}>{VENTA_ESTATUS_LABEL[v.estatus]}</Badge>
+                        <span className="block text-xs text-dim">
+                          {new Date(`${v.fecha}T12:00:00`).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })}
+                          {v.notas ? ` · ${v.notas}` : ""}
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        <FormVenta leadId={lead.id} venta={v} hoy={hoy} />
+                        <DialogoAccion etiqueta="Eliminar" titulo="Eliminar venta" peligro>
+                          <form action={accionEliminarVenta} className="space-y-3">
+                            <input type="hidden" name="lead_id" value={lead.id} />
+                            <input type="hidden" name="id" value={v.id} />
+                            <p className="text-sm text-muted">Se borra esta venta de {pesos(v.monto)}. Si solo se cayó, mejor cámbiala a Cancelada.</p>
+                            <Button type="submit" variant="danger" className="w-full">
+                              Eliminar venta
+                            </Button>
+                          </form>
+                        </DialogoAccion>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <FormVenta leadId={lead.id} hoy={hoy} />
             </Card>
           )}
 

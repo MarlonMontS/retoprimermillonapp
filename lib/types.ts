@@ -170,7 +170,7 @@ export const FUENTE_TIPO_LABEL: Record<FuenteTipo, string> = {
 };
 
 export const ETAPA_LABEL: Record<Etapa, string> = {
-  inscrito: "Inscrito",
+  inscrito: "Inscrito, aún no comienza",
   dia_cero: "Asistió al Día Cero",
   activo: "Activo",
   con_citas: "Con citas",
